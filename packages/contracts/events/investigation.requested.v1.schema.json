@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/investigation.requested.v1.json",
+  "title": "investigation.requested",
+  "event_type": "investigation.requested",
+  "event_version": 1,
+  "topic": "investigations.requested",
+  "producer": "apps.api",
+  "consumers": ["services.ai"],
+  "description": "Payload is InvestigationRequest (packages/contracts/ai/investigation-request.v1.schema.json).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["investigation_id", "incident_id", "service", "incident", "allowed_tools"],
+  "properties": {
+    "investigation_id": { "type": "string", "format": "uuid" },
+    "incident_id": { "type": "string", "format": "uuid" }
+  }
+}

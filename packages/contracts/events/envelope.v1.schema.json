@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/envelope.v1.json",
+  "title": "SentinelEventEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "occurred_at",
+    "source",
+    "correlation_id",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable unique id for this message. Retries must reuse the same id."
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Canonical type, e.g. incident.created"
+    },
+    "event_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Payload schema version for this event_type. Additive fields only within a version."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the fact happened in the domain, UTC."
+    },
+    "source": {
+      "type": "string",
+      "description": "Producer identity: apps.api | services.ingestion | services.detection | services.incident | services.ai | services.remediation"
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Workflow id shared from alert through remediation."
+    },
+    "causation_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "event_id of the message that caused this one. Null for origin events."
+    },
+    "tenant_id": {
+      "type": "string",
+      "default": "default"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "description": "Optional command key. Defaults to event_id when omitted."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific body. Defined per event type."
+    }
+  }
+}

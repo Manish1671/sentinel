@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/ai/tools.v1.json",
+  "title": "SentinelAITools",
+  "description": "Read-only tools. No shell, SQL, or cloud SDK. Invoked by services/ai against internal APIs.",
+  "$defs": {
+    "toolError": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      }
+    },
+    "get_recent_logs": {
+      "request": {
+        "required": ["service_id", "from", "to"],
+        "properties": {
+          "service_id": { "type": "string", "format": "uuid" },
+          "from": { "type": "string", "format": "date-time" },
+          "to": { "type": "string", "format": "date-time" },
+          "severity": { "type": "string" },
+          "query": { "type": "string", "maxLength": 256 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
+        }
+      },
+      "response": {
+        "required": ["entries"],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "required": ["occurred_at", "severity", "message"],
+              "properties": {
+                "event_id": { "type": "string", "format": "uuid" },
+                "occurred_at": { "type": "string", "format": "date-time" },
+                "severity": { "type": "string" },
+                "message": { "type": "string" },
+                "trace_id": { "type": ["string", "null"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_metrics": {
+      "request": {
+        "required": ["service_id", "name", "from", "to"],
+        "properties": {
+          "service_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "from": { "type": "string", "format": "date-time" },
+          "to": { "type": "string", "format": "date-time" },
+          "step_seconds": { "type": "integer", "minimum": 15, "maximum": 3600 }
+        }
+      },
+      "response": {
+        "required": ["name", "points"],
+        "properties": {
+          "name": { "type": "string" },
+          "unit": { "type": "string" },
+          "points": {
+            "type": "array",
+            "items": {
+              "required": ["t", "v"],
+              "properties": {
+                "t": { "type": "string", "format": "date-time" },
+                "v": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_service_health": {
+      "request": {
+        "required": ["service_id"],
+        "properties": {
+          "service_id": { "type": "string", "format": "uuid" }
+        }
+      },
+      "response": {
+        "required": ["service_id", "health_status", "checked_at"],
+        "properties": {
+          "service_id": { "type": "string", "format": "uuid" },
+          "health_status": {
+            "type": "string",
+            "enum": ["healthy", "degraded", "unhealthy", "unknown"]
+          },
+          "checked_at": { "type": "string", "format": "date-time" },
+          "checks": { "type": "object" }
+        }
+      }
+    },
+    "get_recent_deployments": {
+      "request": {
+        "required": ["service_id"],
+        "properties": {
+          "service_id": { "type": "string", "format": "uuid" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 20, "default": 5 }
+        }
+      },
+      "response": {
+        "required": ["deployments"],
+        "properties": {
+          "deployments": { "type": "array" }
+        }
+      }
+    },
+    "get_trace": {
+      "request": {
+        "properties": {
+          "trace_id": { "type": "string" },
+          "service_id": { "type": "string", "format": "uuid" },
+          "error_example": { "type": "boolean" }
+        }
+      },
+      "response": {
+        "required": ["trace_id", "spans"],
+        "properties": {
+          "trace_id": { "type": "string" },
+          "spans": { "type": "array" }
+        }
+      }
+    },
+    "search_runbooks": {
+      "request": {
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string", "maxLength": 256 },
+          "service_id": { "type": "string", "format": "uuid" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 10, "default": 5 }
+        }
+      },
+      "response": {
+        "required": ["hits"],
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "required": ["runbook_id", "slug", "title", "excerpt", "score"],
+              "properties": {
+                "runbook_id": { "type": "string", "format": "uuid" },
+                "slug": { "type": "string" },
+                "title": { "type": "string" },
+                "excerpt": { "type": "string" },
+                "score": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "search_previous_incidents": {
+      "request": {
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string", "maxLength": 256 },
+          "service_id": { "type": "string", "format": "uuid" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 10, "default": 5 }
+        }
+      },
+      "response": {
+        "required": ["hits"],
+        "properties": {
+          "hits": {
+            "type": "array",
+            "items": {
+              "required": ["incident_id", "reference", "title", "severity", "score"],
+              "properties": {
+                "incident_id": { "type": "string", "format": "uuid" },
+                "reference": { "type": "string" },
+                "title": { "type": "string" },
+                "severity": { "type": "string" },
+                "resolved_at": { "type": ["string", "null"], "format": "date-time" },
+                "score": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "get_deployment_diff": {
+      "request": {
+        "required": ["deployment_id"],
+        "properties": {
+          "deployment_id": { "type": "string", "format": "uuid" },
+          "against_deployment_id": { "type": "string", "format": "uuid" }
+        }
+      },
+      "response": {
+        "required": ["deployment_id", "summary"],
+        "properties": {
+          "deployment_id": { "type": "string", "format": "uuid" },
+          "from_version": { "type": "string" },
+          "to_version": { "type": "string" },
+          "summary": { "type": "string" },
+          "changelog": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/telemetry.metric.v1.json",
+  "title": "telemetry.metric",
+  "event_type": "telemetry.metric",
+  "event_version": 1,
+  "topic": "telemetry.events",
+  "producer": "services.ingestion",
+  "consumers": ["services.detection"],
+  "required_payload": [
+    "service_id",
+    "service_slug",
+    "environment",
+    "name",
+    "value",
+    "occurred_at"
+  ],
+  "type": "object",
+  "properties": {
+    "service_id": { "type": "string", "format": "uuid" },
+    "service_slug": { "type": "string" },
+    "environment": { "type": "string", "enum": ["production", "staging", "development"] },
+    "name": { "type": "string" },
+    "value": { "type": "number" },
+    "unit": { "type": "string" },
+    "labels": { "type": "object", "additionalProperties": { "type": "string" } },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "service_id",
+    "service_slug",
+    "environment",
+    "name",
+    "value",
+    "occurred_at"
+  ],
+  "additionalProperties": false
+}

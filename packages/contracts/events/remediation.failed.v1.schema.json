@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/remediation.failed.v1.json",
+  "title": "remediation.failed",
+  "event_type": "remediation.failed",
+  "event_version": 1,
+  "topic": "remediation.failed",
+  "producer": "services.remediation",
+  "consumers": ["services.incident", "apps.api"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "remediation_id",
+    "incident_id",
+    "error_code",
+    "error_message",
+    "retryable",
+    "failed_at"
+  ],
+  "properties": {
+    "remediation_id": { "type": "string", "format": "uuid" },
+    "incident_id": { "type": "string", "format": "uuid" },
+    "error_code": { "type": "string" },
+    "error_message": { "type": "string" },
+    "retryable": { "type": "boolean" },
+    "verification_status": { "type": "string", "enum": ["pending", "failed", "skipped"] },
+    "failed_at": { "type": "string", "format": "date-time" }
+  }
+}

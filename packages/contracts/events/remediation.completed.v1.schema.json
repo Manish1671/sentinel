@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/remediation.completed.v1.json",
+  "title": "remediation.completed",
+  "event_type": "remediation.completed",
+  "event_version": 1,
+  "topic": "remediation.completed",
+  "producer": "services.remediation",
+  "consumers": ["services.incident", "apps.api"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "remediation_id",
+    "incident_id",
+    "status",
+    "verification_status",
+    "completed_at"
+  ],
+  "properties": {
+    "remediation_id": { "type": "string", "format": "uuid" },
+    "incident_id": { "type": "string", "format": "uuid" },
+    "status": { "type": "string", "enum": ["succeeded"] },
+    "result_summary": { "type": "string" },
+    "verification_status": { "type": "string", "enum": ["passed", "skipped"] },
+    "verification_details": { "type": "object" },
+    "completed_at": { "type": "string", "format": "date-time" }
+  }
+}

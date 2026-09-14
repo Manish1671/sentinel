@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/incident.updated.v1.json",
+  "title": "incident.updated",
+  "event_type": "incident.updated",
+  "event_version": 1,
+  "topic": "incidents.updated",
+  "producer": "services.incident",
+  "consumers": ["apps.api", "services.ai", "services.remediation"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "incident_id",
+    "version",
+    "status",
+    "previous_status",
+    "changed_fields"
+  ],
+  "properties": {
+    "incident_id": { "type": "string", "format": "uuid" },
+    "version": { "type": "integer", "minimum": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["open", "investigating", "remediating", "verifying", "resolved", "closed"]
+    },
+    "previous_status": {
+      "type": "string",
+      "enum": ["open", "investigating", "remediating", "verifying", "resolved", "closed"]
+    },
+    "changed_fields": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "reason": { "type": "string" },
+    "actor_user_id": { "type": ["string", "null"], "format": "uuid" }
+  }
+}

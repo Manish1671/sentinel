@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/alert.created.v1.json",
+  "title": "alert.created",
+  "event_type": "alert.created",
+  "event_version": 1,
+  "topic": "alerts.created",
+  "producer": "services.detection",
+  "consumers": ["services.incident"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "alert_id",
+    "service_id",
+    "detector_id",
+    "severity",
+    "title",
+    "fingerprint",
+    "started_at"
+  ],
+  "properties": {
+    "alert_id": { "type": "string", "format": "uuid" },
+    "service_id": { "type": "string", "format": "uuid" },
+    "detector_id": { "type": "string" },
+    "severity": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+    "title": { "type": "string" },
+    "summary": { "type": "string" },
+    "fingerprint": { "type": "string" },
+    "labels": { "type": "object" },
+    "triggering_event_id": { "type": ["string", "null"], "format": "uuid" },
+    "started_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/ai/investigation-result.v1.json",
+  "title": "InvestigationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "investigation_id",
+    "incident_id",
+    "root_cause_hypothesis",
+    "confidence",
+    "reasoning_summary",
+    "risk_level",
+    "evidence_refs",
+    "recommendations",
+    "tool_usage",
+    "model"
+  ],
+  "properties": {
+    "investigation_id": { "type": "string", "format": "uuid" },
+    "incident_id": { "type": "string", "format": "uuid" },
+    "root_cause_hypothesis": { "type": "string" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "reasoning_summary": { "type": "string" },
+    "risk_level": { "type": "string", "enum": ["low", "medium", "high"] },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tool_name", "source_type", "summary"],
+        "properties": {
+          "evidence_id": { "type": "string", "format": "uuid" },
+          "tool_name": { "type": "string" },
+          "source_type": { "type": "string" },
+          "summary": { "type": "string" },
+          "artifact_uri": { "type": ["string", "null"] },
+          "source_ref": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action_type", "title", "rationale", "confidence", "risk_level", "parameters"],
+        "properties": {
+          "action_type": { "type": "string" },
+          "title": { "type": "string" },
+          "rationale": { "type": "string" },
+          "target_service_id": { "type": "string", "format": "uuid" },
+          "parameters": { "type": "object" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "risk_level": { "type": "string", "enum": ["low", "medium", "high"] },
+          "required_approval_role": { "type": "string", "enum": ["approver", "admin"] }
+        }
+      }
+    },
+    "tool_usage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tool", "call_count", "status"],
+        "properties": {
+          "tool": { "type": "string" },
+          "call_count": { "type": "integer", "minimum": 0 },
+          "duration_ms": { "type": "integer", "minimum": 0 },
+          "status": { "type": "string", "enum": ["ok", "error", "timeout"] }
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    }
+  }
+}

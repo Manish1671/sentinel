@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/investigation.completed.v1.json",
+  "title": "investigation.completed",
+  "event_type": "investigation.completed",
+  "event_version": 1,
+  "topic": "investigations.completed",
+  "producer": "services.ai",
+  "consumers": ["services.incident", "apps.api"],
+  "description": "Payload wraps InvestigationResult plus investigation status.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["investigation_id", "incident_id", "status", "result"],
+  "properties": {
+    "investigation_id": { "type": "string", "format": "uuid" },
+    "incident_id": { "type": "string", "format": "uuid" },
+    "status": { "type": "string", "enum": ["completed", "failed"] },
+    "error_message": { "type": ["string", "null"] },
+    "result": { "type": ["object", "null"] }
+  }
+}

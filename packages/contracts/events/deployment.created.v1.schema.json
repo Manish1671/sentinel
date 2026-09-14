@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/deployment.created.v1.json",
+  "title": "deployment.created",
+  "event_type": "deployment.created",
+  "event_version": 1,
+  "topic": "deployments.created",
+  "producer": "services.ingestion",
+  "consumers": ["apps.api", "services.detection"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "deployment_id",
+    "service_id",
+    "service_slug",
+    "environment",
+    "version",
+    "status",
+    "started_at"
+  ],
+  "properties": {
+    "deployment_id": { "type": "string", "format": "uuid" },
+    "service_id": { "type": "string", "format": "uuid" },
+    "service_slug": { "type": "string" },
+    "environment": { "type": "string", "enum": ["production", "staging", "development"] },
+    "version": { "type": "string" },
+    "git_sha": { "type": ["string", "null"] },
+    "status": {
+      "type": "string",
+      "enum": ["in_progress", "succeeded", "failed", "rolled_back"]
+    },
+    "changelog": { "type": "string" },
+    "deployed_by_user_id": { "type": ["string", "null"], "format": "uuid" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

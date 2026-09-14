@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/remediation.requested.v1.json",
+  "title": "remediation.requested",
+  "event_type": "remediation.requested",
+  "event_version": 1,
+  "topic": "remediation.requested",
+  "producer": "apps.api",
+  "consumers": ["services.remediation"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "remediation_id",
+    "incident_id",
+    "recommendation_id",
+    "service_id",
+    "action_type",
+    "parameters",
+    "approval_id"
+  ],
+  "properties": {
+    "remediation_id": { "type": "string", "format": "uuid" },
+    "incident_id": { "type": "string", "format": "uuid" },
+    "recommendation_id": { "type": "string", "format": "uuid" },
+    "service_id": { "type": "string", "format": "uuid" },
+    "action_type": { "type": "string" },
+    "parameters": { "type": "object" },
+    "requested_by_user_id": { "type": "string", "format": "uuid" },
+    "approved_by_user_id": { "type": "string", "format": "uuid" },
+    "approval_id": { "type": "string", "format": "uuid" }
+  }
+}

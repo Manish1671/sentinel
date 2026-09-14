@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "user_role": ["viewer", "responder", "approver", "admin"],
+  "user_status": ["active", "disabled"],
+  "service_environment": ["production", "staging", "development"],
+  "service_health_status": ["healthy", "degraded", "unhealthy", "unknown"],
+  "deployment_status": ["in_progress", "succeeded", "failed", "rolled_back"],
+  "telemetry_kind": ["metric", "log", "trace", "health"],
+  "severity_level": ["critical", "high", "medium", "low"],
+  "alert_status": ["open", "acknowledged", "resolved", "suppressed"],
+  "incident_status": ["open", "investigating", "remediating", "verifying", "resolved", "closed"],
+  "investigation_status": ["requested", "running", "completed", "failed", "cancelled"],
+  "recommendation_status": ["proposed", "accepted", "rejected", "superseded", "expired"],
+  "remediation_status": [
+    "pending_approval",
+    "approved",
+    "rejected",
+    "running",
+    "verifying",
+    "succeeded",
+    "failed",
+    "cancelled"
+  ],
+  "approval_decision": ["pending", "approved", "rejected"],
+  "risk_level": ["low", "medium", "high"],
+  "action_type": [
+    "rollback_deployment",
+    "restart_service",
+    "scale_replicas",
+    "disable_feature_flag",
+    "run_runbook",
+    "page_owner",
+    "other"
+  ],
+  "allowed_tools": [
+    "get_recent_logs",
+    "get_metrics",
+    "get_service_health",
+    "get_recent_deployments",
+    "get_trace",
+    "search_runbooks",
+    "search_previous_incidents",
+    "get_deployment_diff"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/api/error.v1.json",
+  "title": "ApiError",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["error"],
+  "properties": {
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "request_id"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "details": { "type": "object" },
+        "request_id": { "type": "string" }
+      }
+    }
+  }
+}

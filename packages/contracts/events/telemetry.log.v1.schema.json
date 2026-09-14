@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/events/telemetry.log.v1.json",
+  "title": "telemetry.log",
+  "event_type": "telemetry.log",
+  "event_version": 1,
+  "topic": "telemetry.events",
+  "producer": "services.ingestion",
+  "consumers": ["services.detection"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "service_id",
+    "service_slug",
+    "environment",
+    "severity",
+    "message",
+    "occurred_at"
+  ],
+  "properties": {
+    "service_id": { "type": "string", "format": "uuid" },
+    "service_slug": { "type": "string" },
+    "environment": { "type": "string", "enum": ["production", "staging", "development"] },
+    "severity": { "type": "string", "enum": ["debug", "info", "warn", "error", "fatal"] },
+    "message": { "type": "string" },
+    "trace_id": { "type": ["string", "null"] },
+    "span_id": { "type": ["string", "null"] },
+    "attributes": { "type": "object" },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  }
+}

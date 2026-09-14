@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sentinel.dev/contracts/ai/investigation-request.v1.json",
+  "title": "InvestigationRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "investigation_id",
+    "incident_id",
+    "service",
+    "incident",
+    "time_window",
+    "allowed_tools",
+    "correlation_id"
+  ],
+  "properties": {
+    "investigation_id": { "type": "string", "format": "uuid" },
+    "incident_id": { "type": "string", "format": "uuid" },
+    "correlation_id": { "type": "string", "format": "uuid" },
+    "requested_by_user_id": { "type": ["string", "null"], "format": "uuid" },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "slug", "environment", "health_status"],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "slug": { "type": "string" },
+        "name": { "type": "string" },
+        "environment": { "type": "string", "enum": ["production", "staging", "development"] },
+        "health_status": {
+          "type": "string",
+          "enum": ["healthy", "degraded", "unhealthy", "unknown"]
+        }
+      }
+    },
+    "incident": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "title", "severity", "status", "detected_at"],
+      "properties": {
+        "reference": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "severity": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+        "status": { "type": "string" },
+        "detected_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "detector_id", "severity", "title", "started_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "detector_id": { "type": "string" },
+          "severity": { "type": "string" },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "started_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "recent_deployments": {
+      "type": "array",
+      "description": "Identifiers and versions only. Diffs are fetched via get_deployment_diff.",
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "status", "started_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "version": { "type": "string" },
+          "git_sha": { "type": ["string", "null"] },
+          "status": { "type": "string" },
+          "started_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "time_window": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "string", "format": "date-time" },
+        "to": { "type": "string", "format": "date-time" }
+      }
+    },
+    "allowed_tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "get_recent_logs",
+          "get_metrics",
+          "get_service_health",
+          "get_recent_deployments",
+          "get_trace",
+          "search_runbooks",
+          "search_previous_incidents",
+          "get_deployment_diff"
+        ]
+      }
+    }
+  }
+}
