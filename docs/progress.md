@@ -50,7 +50,14 @@ evaluates deterministic rules, persists alerts in PostgreSQL, and publishes
 `alert.created` with at-least-once, idempotent processing.
 
 ## Phase 5 — Incident Correlation
-Status: ⏳ Not Started
+Status: ✅ Complete
+
+Summary:
+Implemented the standalone Go incident service that consumes `alert.created`,
+correlates related alerts into operational incidents, persists associations and
+an append-only timeline, and publishes `incident.created` / `incident.updated`
+with at-least-once, idempotent processing. New incidents start `open`; AI
+investigation and remediation remain later phases.
 
 ## Phase 6 — AI Investigation
 Status: ⏳ Not Started

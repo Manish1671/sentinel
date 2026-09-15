@@ -66,8 +66,8 @@ scripts/          Local and operational scripts
 2. **Phase 1 — Contracts & core domain**
 3. **Phase 2 — Go API control plane foundation**
 4. **Phase 3 — Telemetry ingestion + Kafka**
-5. **Phase 4 — Detection engine** (current)
-6. **Phase 5 — Incident correlation**
+5. **Phase 4 — Detection engine**
+6. **Phase 5 — Incident correlation** (current)
 7. **Phase 6 — AI investigation with restricted tools**
 8. **Phase 7 — Recommendation & remediation**
 9. **Phase 8 — Operator UI**
@@ -75,11 +75,11 @@ scripts/          Local and operational scripts
 
 ## Current project status
 
-**Phase 4 — Detection Engine**
+**Phase 5 — Incident Correlation**
 
-The repository includes architecture docs, PostgreSQL schema/seeds, a Go control-plane API, a Go ingestion service that publishes telemetry to Kafka, and a Go detection service that evaluates deterministic rules, persists alerts, and publishes `alert.created`.
+The repository includes architecture docs, PostgreSQL schema/seeds, a Go control-plane API, a Go ingestion service that publishes telemetry to Kafka, a Go detection service that evaluates deterministic rules and publishes `alert.created`, and a Go incident service that correlates related alerts into incidents with a timeline and publishes `incident.created` / `incident.updated`.
 
-It does **not** yet include incident correlation as a product service, the operator UI, remediation execution, or the AI agent.
+It does **not** yet include the operator UI, remediation execution, or the AI agent.
 
 ## Local infrastructure
 
@@ -88,7 +88,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-This starts PostgreSQL, Redis, Kafka, ingestion (`:8090`), and detection (`:8091`).
+This starts PostgreSQL, Redis, Kafka, ingestion (`:8090`), detection (`:8091`), and incident (`:8092`).
 
 ## Documentation
 

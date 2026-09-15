@@ -1,6 +1,6 @@
 # Kafka event strategy
 
-JSON payloads. Ingestion (`services/ingestion`) publishes `telemetry.*` and `deployment.created`. Detection (`services/detection`) publishes `alert.created`. Other event types are still contract-only.
+JSON payloads. Ingestion (`services/ingestion`) publishes `telemetry.*` and `deployment.created`. Detection (`services/detection`) publishes `alert.created`. Incident (`services/incident`) publishes `incident.created` and `incident.updated`. Other event types are still contract-only.
 
 Contracts are versioned (`event_version`). Additive fields only within a version; breaking changes increment `event_version` or introduce a new `event_type`.
 
@@ -92,6 +92,17 @@ See [services/ingestion/README.md](../../services/ingestion/README.md).
 - `source` is always `services.detection`. `causation_id` is the triggering telemetry `event_id`.
 
 See [services/detection/README.md](../../services/detection/README.md).
+
+## Incident correlation (Phase 5)
+
+`services/incident` consumes `alerts.created` with consumer group `sentinel-incident-v1`. It publishes `incident.created` to `incidents.created` and `incident.updated` to `incidents.updated`.
+
+- Kafka message key for incident events: `incident_id` (UUID).
+- Delivery is **at-least-once**. Duplicate `alert.created` deliveries are ignored using `incident_processed_events.event_id` plus unique `incident_alerts.alert_id`. Downstream consumers must still be idempotent on `incident_id` / deterministic output `event_id`.
+- `source` is always `services.incident`. `causation_id` is the triggering `alert.created` `event_id`.
+- Offsets commit after the PostgreSQL correlation transaction succeeds. If Kafka publish fails after commit, the row stays `published=false` and a retry republishes the same deterministic `event_id`.
+
+See [services/incident/README.md](../../services/incident/README.md).
 
 ## Naming
 

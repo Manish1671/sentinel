@@ -1,4 +1,4 @@
-# Local infrastructure plus Phase 3 ingestion and Phase 4 detection.
+# Local infrastructure plus ingestion, detection, and incident correlation.
 name: sentinel
 
 services:
@@ -106,6 +106,30 @@ services:
       SEED_ON_START: "true"
     ports:
       - "8091:8091"
+
+  incident:
+    build:
+      context: .
+      dockerfile: services/incident/Dockerfile
+    container_name: sentinel-incident
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      DATABASE_URL: postgres://${POSTGRES_USER:-sentinel}:${POSTGRES_PASSWORD:-sentinel}@postgres:5432/${POSTGRES_DB:-sentinel}?sslmode=disable
+      PORT: "8092"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      MIGRATIONS_PATH: /app/database/migrations
+      SEEDS_PATH: /app/database/seeds
+      SEED_ON_START: "true"
+      INCIDENT_CORRELATION_WINDOW_SECONDS: ${INCIDENT_CORRELATION_WINDOW_SECONDS:-300}
+    ports:
+      - "8092:8092"
 
 volumes:
   sentinel_postgres_data:
