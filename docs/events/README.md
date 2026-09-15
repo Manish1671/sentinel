@@ -1,6 +1,6 @@
 # Kafka event strategy
 
-JSON payloads. Ingestion (`services/ingestion`) publishes `telemetry.*` and `deployment.created`. Other event types are still contract-only.
+JSON payloads. Ingestion (`services/ingestion`) publishes `telemetry.*` and `deployment.created`. Detection (`services/detection`) publishes `alert.created`. Other event types are still contract-only.
 
 Contracts are versioned (`event_version`). Additive fields only within a version; breaking changes increment `event_version` or introduce a new `event_type`.
 
@@ -82,6 +82,16 @@ Payload schemas live beside this document in `packages/contracts/events/*.v1.sch
 - Process-local idempotency (header/`event_id`) avoids duplicate publishes in the same process. Consumers must still deduplicate on `event_id`.
 
 See [services/ingestion/README.md](../../services/ingestion/README.md).
+
+## Detection (Phase 4)
+
+`services/detection` consumes `telemetry.events` and `deployments.created` with consumer group `sentinel-detection-v1`. It publishes `alert.created` to `alerts.created`.
+
+- Kafka message key for alerts: `service_id` (UUID), matching ingestion’s per-service ordering.
+- Delivery is **at-least-once**. Duplicate `alert.created` messages can appear in a crash window; they reuse a deterministic `event_id` derived from `alert_id`. Consumers must still be idempotent on `alert_id`.
+- `source` is always `services.detection`. `causation_id` is the triggering telemetry `event_id`.
+
+See [services/detection/README.md](../../services/detection/README.md).
 
 ## Naming
 

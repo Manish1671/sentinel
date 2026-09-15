@@ -42,7 +42,12 @@ telemetry, creates canonical event envelopes, and publishes
 telemetry and deployment events to Kafka using at-least-once delivery.
 
 ## Phase 4 — Detection Engine
-Status: ⏳ Not Started
+Status: ✅ Complete
+
+Summary:
+Implemented the standalone Go detection service that consumes Kafka telemetry,
+evaluates deterministic rules, persists alerts in PostgreSQL, and publishes
+`alert.created` with at-least-once, idempotent processing.
 
 ## Phase 5 — Incident Correlation
 Status: ⏳ Not Started

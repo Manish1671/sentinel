@@ -1,0 +1,14 @@
+---
+description: Never add Cursor as a Git commit author or GitHub co-author
+alwaysApply: true
+---
+
+# Git identity
+
+Never add Cursor, Cursor Agent, or `cursoragent@cursor.com` to commits.
+
+- Do not add `Co-authored-by: Cursor` (or any Cursor email) to commit messages.
+- Do not change git `user.name` / `user.email`.
+- Commit as the repository owner only (`Manish Tiwari` / their configured git identity).
+- If a commit would include a Cursor trailer, strip it before finishing.
+- The user does not want Cursor on GitHub contribution graphs.

@@ -41,8 +41,23 @@ def samples(abnormal: bool) -> list[tuple[str, dict]]:
     ts = now()
     out: list[tuple[str, dict]] = []
     for slug, sid in SERVICES.items():
-        latency = 920.0 if abnormal and slug == "payments-api" else 24.0
+        out.append(
+            (
+                "/api/v1/deployments",
+                {
+                    "service_id": sid,
+                    "service_slug": slug,
+                    "environment": "production",
+                    "version": "1.18.0" if slug == "payments-api" else "1.0.0",
+                    "status": "succeeded",
+                    "started_at": ts,
+                    "completed_at": ts,
+                },
+            )
+        )
+        latency = 1500.0 if abnormal and slug == "payments-api" else 24.0
         errors = 0.11 if abnormal and slug == "payments-api" else 0.002
+        dbutil = 0.96 if abnormal and slug == "payments-api" else 0.35
         out.append(
             (
                 "/api/v1/telemetry/metric",
@@ -53,6 +68,34 @@ def samples(abnormal: bool) -> list[tuple[str, dict]]:
                     "name": f"{slug.replace('-', '_')}.latency_p99",
                     "value": latency,
                     "unit": "ms",
+                    "occurred_at": ts,
+                    "labels": {"env": "production"},
+                },
+            )
+        )
+        out.append(
+            (
+                "/api/v1/telemetry/metric",
+                {
+                    "service_id": sid,
+                    "service_slug": slug,
+                    "environment": "production",
+                    "name": f"{slug.replace('-', '_')}.error_rate",
+                    "value": errors,
+                    "occurred_at": ts,
+                    "labels": {"env": "production"},
+                },
+            )
+        )
+        out.append(
+            (
+                "/api/v1/telemetry/metric",
+                {
+                    "service_id": sid,
+                    "service_slug": slug,
+                    "environment": "production",
+                    "name": "db_connection_utilization",
+                    "value": dbutil,
                     "occurred_at": ts,
                     "labels": {"env": "production"},
                 },
@@ -86,20 +129,6 @@ def samples(abnormal: bool) -> list[tuple[str, dict]]:
                     "duration_ms": latency,
                     "status": "error" if abnormal and slug == "payments-api" else "ok",
                     "occurred_at": ts,
-                },
-            )
-        )
-        out.append(
-            (
-                "/api/v1/deployments",
-                {
-                    "service_id": sid,
-                    "service_slug": slug,
-                    "environment": "production",
-                    "version": "1.18.0" if slug == "payments-api" else "1.0.0",
-                    "status": "succeeded",
-                    "started_at": ts,
-                    "completed_at": ts,
                 },
             )
         )
