@@ -1,6 +1,6 @@
-# AI investigation contract
+# AI investigation
 
-The AI investigator is a **tool-using service**. It never receives database credentials, cloud keys, or a shell. Phase 1 defines the contract only.
+`services/ai` is a **tool-using** FastAPI service. It never receives a shell, Kubernetes client, or ad-hoc SQL. It investigates and recommends; it does not remediate.
 
 Schemas:
 
@@ -8,57 +8,44 @@ Schemas:
 - `packages/contracts/ai/investigation-result.v1.schema.json`
 - `packages/contracts/ai/tools.v1.schema.json`
 
-Transport (later): Kafka `investigation.requested` / `investigation.completed`, and optionally HTTP between `apps.api` and `services.ai`. Both use the same JSON bodies.
+Transport: Kafka `investigation.requested` / `investigation.completed`. Local HTTP on `:8000` uses the same workflow.
 
 ## InvestigationRequest
 
 Enough context to investigate **without** unrestricted reads:
 
 - `investigation_id`, `incident_id`, `correlation_id`
-- `service` (id, slug, environment, health)
-- `incident` (reference, title, summary, severity, status, detected_at)
-- `alerts[]` summaries
-- `recent_deployments[]` ids/versions (not full diffs)
-- `time_window`
+- `service`, `incident`, `alerts[]`, `recent_deployments[]`, `time_window`
 - `allowed_tools` (server-defined allowlist)
-
-No SQL, no kube configs, no log firehose.
 
 ## InvestigationResult
 
-Must include:
+Must include root-cause hypothesis, confidence (0–1), evidence refs, reasoning, recommendations, risk, tool usage, and model identity. Invalid model JSON is rejected.
 
-- `root_cause_hypothesis`
-- `confidence` (0–1)
-- `evidence_refs[]`
-- `reasoning_summary`
-- `recommendations[]` (action, rationale, risk, confidence, parameters)
-- `risk_level`
-- `tool_usage[]`
-- `model.name` / `model.version`
+Reasoning distinguishes **OBSERVED EVIDENCE**, **INFERENCE / HYPOTHESIS**, and **RECOMMENDATION**.
+
+Confidence bands: high ≥ 0.75, medium ≥ 0.45, low otherwise.
 
 ## Flow
 
-1. Operator or correlator requests investigation (`POST /api/v1/incidents/:id/investigations`).
-2. API writes `investigations.status=requested` and emits `investigation.requested`.
-3. `services.ai` claims the job (`running`), calls **only** allowlisted tools, stores `evidence`.
-4. Emits `investigation.completed` with `InvestigationResult` (or `status=failed`).
-5. Incident domain appends timeline rows and `recommendations`. High-impact recs also get a `remediations` row in `pending_approval`.
-6. Humans approve via the API. AI cannot approve or execute.
+1. Operator (`apps/api`) or local `POST /api/v1/incidents/:id/investigations` creates `investigations.status=requested` and emits `investigation.requested`.
+2. `services/ai` claims the job (`running`), calls **only** allowlisted tools against PostgreSQL, stores `evidence`.
+3. One bounded synthesis step produces `InvestigationResult`.
+4. Emits `investigation.completed` (`status=completed|failed`).
+5. Recommendations are **proposed** only. Humans approve later via the API. AI cannot approve or execute.
 
 ## Tools
 
-Read-only, argument-validated, size-limited, audited. Implemented later as internal APIs, not as model-side plugins to production.
+Read-only, argument-validated, size-limited. Implemented against Sentinel PostgreSQL (catalog, telemetry samples, alerts, runbooks, historical incidents). Missing data returns structured `no_evidence`; it does not fail the whole run.
 
-| Tool | Request (required) | Returns |
-| --- | --- | --- |
-| `get_recent_logs` | `service_id`, `from`, `to` | Bounded log entries |
-| `get_metrics` | `service_id`, `name`, `from`, `to` | Time series points |
-| `get_service_health` | `service_id` | Health snapshot |
-| `get_recent_deployments` | `service_id` | Recent deployment summaries |
-| `get_trace` | `trace_id` or error example | Spans |
-| `search_runbooks` | `query` | Ranked excerpts |
-| `search_previous_incidents` | `query` | Historical incident hits |
-| `get_deployment_diff` | `deployment_id` | Change summary |
+Retrieval is PostgreSQL full-text + token overlap. A vector backend can replace `app/retrieval/` later.
 
-Tool errors use `{code, message}`. Timeouts count as `tool_usage.status=timeout` and must not crash the investigation (it may `failed` if too little evidence).
+## LLM
+
+Configurable `AI_API_KEY`, `AI_MODEL`, `AI_BASE_URL`. Empty key uses a deterministic heuristic provider so local/CI never requires a vendor.
+
+## Limits
+
+Max 16 tool calls, ~12k context characters, no recursive agent loop, one synthesis call. Timeouts on the LLM HTTP client.
+
+See [services/ai/README.md](../../services/ai/README.md).

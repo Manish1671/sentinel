@@ -1,4 +1,4 @@
-# Local infrastructure plus ingestion, detection, and incident correlation.
+# Local infrastructure plus ingestion, detection, incident correlation, and AI investigation.
 name: sentinel
 
 services:
@@ -130,6 +130,30 @@ services:
       INCIDENT_CORRELATION_WINDOW_SECONDS: ${INCIDENT_CORRELATION_WINDOW_SECONDS:-300}
     ports:
       - "8092:8092"
+
+  ai:
+    build:
+      context: .
+      dockerfile: services/ai/Dockerfile
+    container_name: sentinel-ai
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      DATABASE_URL: postgres://${POSTGRES_USER:-sentinel}:${POSTGRES_PASSWORD:-sentinel}@postgres:5432/${POSTGRES_DB:-sentinel}?sslmode=disable
+      PORT: "8000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      MIGRATIONS_PATH: /app/database/migrations
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-sentinel-investigator}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+    ports:
+      - "8000:8000"
 
 volumes:
   sentinel_postgres_data:

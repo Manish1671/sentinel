@@ -1,6 +1,6 @@
 # Kafka event strategy
 
-JSON payloads. Ingestion (`services/ingestion`) publishes `telemetry.*` and `deployment.created`. Detection (`services/detection`) publishes `alert.created`. Incident (`services/incident`) publishes `incident.created` and `incident.updated`. Other event types are still contract-only.
+JSON payloads. Ingestion (`services/ingestion`) publishes `telemetry.*` and `deployment.created`. Detection (`services/detection`) publishes `alert.created`. Incident (`services/incident`) publishes `incident.created` and `incident.updated`. AI (`services/ai`) publishes `investigation.completed` and may emit `investigation.requested` in local development. Other event types are still contract-only.
 
 Contracts are versioned (`event_version`). Additive fields only within a version; breaking changes increment `event_version` or introduce a new `event_type`.
 
@@ -103,6 +103,19 @@ See [services/detection/README.md](../../services/detection/README.md).
 - Offsets commit after the PostgreSQL correlation transaction succeeds. If Kafka publish fails after commit, the row stays `published=false` and a retry republishes the same deterministic `event_id`.
 
 See [services/incident/README.md](../../services/incident/README.md).
+
+## AI investigation (Phase 6)
+
+`services/ai` consumes `investigations.requested` with consumer group `sentinel-ai-v1`. It publishes `investigation.completed` to `investigations.completed`.
+
+- Payload of `investigation.requested` is `InvestigationRequest`.
+- Payload of `investigation.completed` wraps `status` (`completed`|`failed`) and `InvestigationResult` (or `null` on failure).
+- Kafka message key: `investigation_id`.
+- Delivery is **at-least-once**. `ai_processed_events` plus investigation/evidence deterministic ids make replays safe.
+- `source` is `services.ai`. `causation_id` is the triggering `investigation.requested` `event_id`.
+- Local `POST /api/v1/incidents/{id}/investigations` also produces `investigation.requested` so the path can be exercised without `apps/api` Kafka. The intended public producer remains `apps/api`.
+
+See [services/ai/README.md](../../services/ai/README.md) and [docs/ai/README.md](../ai/README.md).
 
 ## Naming
 
