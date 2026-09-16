@@ -1,6 +1,6 @@
 # Kafka event strategy
 
-JSON payloads. Ingestion (`services/ingestion`) publishes `telemetry.*` and `deployment.created`. Detection (`services/detection`) publishes `alert.created`. Incident (`services/incident`) publishes `incident.created` and `incident.updated`. AI (`services/ai`) publishes `investigation.completed` and may emit `investigation.requested` in local development. Other event types are still contract-only.
+JSON payloads. Ingestion (`services/ingestion`) publishes `telemetry.*` and `deployment.created`. Detection (`services/detection`) publishes `alert.created`. Incident (`services/incident`) publishes `incident.created` and `incident.updated`. AI (`services/ai`) publishes `investigation.completed` and may emit `investigation.requested` in local development. Remediation (`services/remediation`) publishes `remediation.requested` (local), `remediation.completed`, and `remediation.failed`. Other event types are still contract-only.
 
 Contracts are versioned (`event_version`). Additive fields only within a version; breaking changes increment `event_version` or introduce a new `event_type`.
 
@@ -116,6 +116,22 @@ See [services/incident/README.md](../../services/incident/README.md).
 - Local `POST /api/v1/incidents/{id}/investigations` also produces `investigation.requested` so the path can be exercised without `apps/api` Kafka. The intended public producer remains `apps/api`.
 
 See [services/ai/README.md](../../services/ai/README.md) and [docs/ai/README.md](../ai/README.md).
+
+## Remediation (Phase 7)
+
+`services/remediation` consumes `investigations.completed` (bridge: Phase 1 has no `recommendation.created`) and `remediation.requested` with consumer group `sentinel-remediation-v1`.
+
+It publishes:
+
+- `remediation.requested` to `remediation.requested` after human approval (public producer remains `apps.api`; this service publishes locally so execution does not wait on the control plane)
+- `remediation.completed` to `remediation.completed`
+- `remediation.failed` to `remediation.failed`
+
+- Kafka message key: `remediation_id`.
+- Delivery is **at-least-once**. `remediation_processed_events` plus `remediations.idempotency_key` and an `approved`→`running` claim prevent duplicate execution.
+- `source` is `services.remediation`. `causation_id` on completed/failed is the consumed `remediation.requested` `event_id`.
+
+See [services/remediation/README.md](../../services/remediation/README.md).
 
 ## Naming
 

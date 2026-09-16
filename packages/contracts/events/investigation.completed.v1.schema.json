@@ -6,7 +6,7 @@
   "event_version": 1,
   "topic": "investigations.completed",
   "producer": "services.ai",
-  "consumers": ["services.incident", "apps.api"],
+  "consumers": ["services.incident", "apps.api", "services.remediation"],
   "description": "Payload wraps InvestigationResult plus investigation status.",
   "type": "object",
   "additionalProperties": false,

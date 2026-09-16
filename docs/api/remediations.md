@@ -2,7 +2,7 @@
 
 Creating a remediation row from a proposed recommendation is an internal step when an investigation completes (or later, an explicit accept endpoint). Phase 1 public surface is fetch + approve/reject.
 
-Approve/reject **does not execute** the action in this phase; it only records `Approval` and is intended to emit `remediation.requested` after `approved`.
+Approve/reject records `Approval`. An `approved` decision publishes `remediation.requested`; `services/remediation` then executes the allowlisted simulator and verifies health. Rejected remediations never execute.
 
 ## GET /api/v1/remediations/:id
 

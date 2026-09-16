@@ -57,7 +57,7 @@ Implemented the standalone Go incident service that consumes `alert.created`,
 correlates related alerts into operational incidents, persists associations and
 an append-only timeline, and publishes `incident.created` / `incident.updated`
 with at-least-once, idempotent processing. New incidents start `open`; AI
-investigation is Phase 6; remediation remains a later phase.
+investigation is Phase 6; remediation execution is Phase 7.
 
 ## Phase 6 — AI Investigation
 Status: ✅ Complete
@@ -67,10 +67,16 @@ Implemented the standalone Python FastAPI AI service that consumes
 `investigation.requested`, gathers bounded PostgreSQL-backed evidence through
 allowlisted tools, synthesizes a validated `InvestigationResult`, persists
 investigations/evidence/recommendations, and publishes `investigation.completed`.
-Remediation execution remains a later phase.
+Remediation execution is implemented in Phase 7.
 
 ## Phase 7 — Recommendation & Remediation
-Status: ⏳ Not Started
+Status: ✅ Complete
+
+Summary:
+Implemented the standalone Go remediation service that validates AI
+recommendations, requires human approval, executes only allowlisted actions
+against a local simulator, verifies multiple health signals, and updates
+incident lifecycle and timeline. Kubernetes/AWS execution remains later phases.
 
 ## Phase 8 — Operator Dashboard
 Status: ⏳ Not Started
