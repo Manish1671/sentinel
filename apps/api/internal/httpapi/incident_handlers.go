@@ -42,12 +42,7 @@ func (s *Server) getIncident(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.currentUser(w, r); !ok {
 		return
 	}
-	id, err := pathUUID(r, "id")
-	if err != nil {
-		writeError(w, r, s.log, err)
-		return
-	}
-	item, err := s.incidents.Get(r.Context(), id)
+	item, err := s.incidents.Resolve(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeError(w, r, s.log, err)
 		return
@@ -59,7 +54,7 @@ func (s *Server) incidentTimeline(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.currentUser(w, r); !ok {
 		return
 	}
-	id, err := pathUUID(r, "id")
+	item, err := s.incidents.Resolve(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeError(w, r, s.log, err)
 		return
@@ -69,7 +64,7 @@ func (s *Server) incidentTimeline(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, s.log, err)
 		return
 	}
-	items, page, err := s.incidents.Timeline(r.Context(), id, limit, r.URL.Query().Get("cursor"))
+	items, page, err := s.incidents.Timeline(r.Context(), item.ID, limit, r.URL.Query().Get("cursor"))
 	if err != nil {
 		writeError(w, r, s.log, err)
 		return

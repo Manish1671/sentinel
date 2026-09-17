@@ -1,6 +1,12 @@
 # Auth
 
-Session tokens are opaque in this contract. Authn is **not implemented**.
+Signed session tokens are JWTs bound to `auth_sessions` in PostgreSQL. The control plane accepts either:
+
+```
+Authorization: Bearer <token>
+```
+
+or the HttpOnly cookie `sentinel_session` (same token value). Browser traffic should use the Next.js same-origin proxy, which stores the token in that cookie and strips it from the login JSON body.
 
 ## POST /api/v1/auth/login
 
@@ -37,15 +43,17 @@ Session tokens are opaque in this contract. Authn is **not implemented**.
 
 **Status.** `200` success · `400` validation · `401` bad credentials or disabled · `429` login rate limit.
 
+Successful login also sets `Set-Cookie: sentinel_session=...; HttpOnly; Path=/; SameSite=Lax`. Direct API clients may keep using `data.token`. The operator console never exposes that token to page JavaScript.
+
 ## POST /api/v1/auth/logout
 
 **Purpose.** Invalidate the current session.
 
-**Auth.** Bearer required.
+**Auth.** Bearer or session cookie.
 
 **Request.** Empty body.
 
-**Response `204`.** No body.
+**Response `204`.** No body. The session cookie is cleared.
 
 **Status.** `204` · `401`.
 
@@ -53,7 +61,7 @@ Session tokens are opaque in this contract. Authn is **not implemented**.
 
 **Purpose.** Return the authenticated user.
 
-**Auth.** Bearer required.
+**Auth.** Bearer or session cookie.
 
 **Response `200`.**
 

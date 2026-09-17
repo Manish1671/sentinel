@@ -61,3 +61,13 @@
 ```
 
 **Status.** `200` · `401` · `404`.
+
+## GET /api/v1/deployments
+
+**Purpose.** Recent catalog deployments.
+
+**Auth.** Bearer. Roles: any authenticated.
+
+**Query.** `service_id`, `limit`, `cursor`.
+
+**Response `200`.** `{ "data": [ { "id", "service_id", "service_slug", "version", "git_sha", "status", "started_at", "completed_at" } ], "page": { "next_cursor", "limit" } }`

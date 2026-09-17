@@ -39,6 +39,22 @@
 
 **Status.** `201` / `200` · `400` · `401` · `403` · `404` · `409`.
 
+## GET /api/v1/investigations
+
+**Purpose.** List investigations for the operator console.
+
+**Auth.** Bearer. Roles: any authenticated.
+
+**Query.** `incident_id`, `status`, `limit`, `cursor`.
+
+**Response `200`.** `{ "data": [ investigation summaries ], "page": { "next_cursor", "limit" } }`
+
+## GET /api/v1/incidents/:id/investigations
+
+**Purpose.** Investigations for one incident. `:id` may be UUID or reference.
+
+**Auth.** Bearer. Roles: any authenticated.
+
 ## GET /api/v1/investigations/:id
 
 **Purpose.** Investigation status and result.
@@ -63,7 +79,10 @@
       { "tool": "get_trace", "call_count": 1, "status": "ok" }
     ],
     "requested_at": "2026-09-14T04:21:00Z",
-    "completed_at": "2026-09-14T04:27:00Z"
+        "completed_at": "2026-09-14T04:27:00Z",
+    "evidence": [
+      { "id": "77777777-0000-4000-8000-000000000001", "tool_name": "get_recent_deployments", "source_type": "deployment", "summary": "payments-api 1.18.0 completed 04:17 UTC" }
+    ]
   }
 }
 ```

@@ -1,6 +1,6 @@
 # Architecture
 
-Phase 1 contracts are specified in `docs/` and `packages/contracts/`. Runtime services are not implemented yet.
+Phase 1 contracts are specified in `docs/` and `packages/contracts/`. Operator console visual foundation: [frontend.md](./frontend.md).
 
 ## 1. Product overview
 

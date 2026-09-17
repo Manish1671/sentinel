@@ -79,7 +79,31 @@ against a local simulator, verifies multiple health signals, and updates
 incident lifecycle and timeline. Kubernetes/AWS execution remains later phases.
 
 ## Phase 8 — Operator Dashboard
-Status: ⏳ Not Started
+Status: ⏳ In Progress (Phase 8 not complete)
+
+Phase 8A added the operator console design system, application shell,
+reusable components, and isolated mock fixtures in `apps/web`.
+
+## Phase 8B — Real API Integration
+Status: ✅ Complete
+
+Wired the Phase 8A console to `apps/api` through a same-origin Next.js
+proxy and HttpOnly session cookie: real auth, catalog, incidents,
+investigations, recommendations, remediations, and approval delegation
+to `services/remediation`. Historical telemetry APIs are still
+unavailable and render as explicit empty states. Phase 8 remains
+incomplete until remaining operator-product work is done.
+
+## Phase 8C — Flagship Incident Workspace
+Status: ✅ Complete
+
+Polished `/incidents/[id]` as the primary SRE workspace using real
+`apps/api` data: header and summary strip, correlation signals from
+incident-service metadata, timeline backbone, correlated alerts,
+investigation / evidence / confidence, recommendation approval UX,
+and Phase 7 remediation lifecycle. Historical telemetry is still not
+exposed by the control plane and stays an explicit unavailable state.
+Phase 8 is not marked complete.
 
 ## Phase 9 — Observability
 Status: ⏳ Not Started

@@ -16,6 +16,7 @@ import (
 	"github.com/sentinel-dev/sentinel/apps/api/internal/database"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/incidents"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/middleware"
+	"github.com/sentinel-dev/sentinel/apps/api/internal/ops"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/paging"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/services"
 )
@@ -28,6 +29,7 @@ type Server struct {
 	auth      *auth.Service
 	catalog   *services.Service
 	incidents *incidents.Service
+	ops       *ops.Service
 	http      *http.Server
 }
 
@@ -48,6 +50,7 @@ func New(
 		auth:      authSvc,
 		catalog:   catalog,
 		incidents: incidentsSvc,
+		ops:       ops.NewService(ops.NewRepository(db.Pool), ops.NewHTTPDecisionClient(cfg.RemediationURL)),
 	}
 	s.http = &http.Server{
 		Addr:              ":" + strconv.Itoa(cfg.Port),
@@ -81,6 +84,18 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/v1/incidents", s.createIncident)
 	mux.HandleFunc("GET /api/v1/incidents/{id}", s.getIncident)
 	mux.HandleFunc("GET /api/v1/incidents/{id}/timeline", s.incidentTimeline)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/alerts", s.incidentAlerts)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/investigations", s.incidentInvestigations)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/recommendations", s.incidentRecommendations)
+	mux.HandleFunc("GET /api/v1/incidents/{id}/remediations", s.incidentRemediations)
+	mux.HandleFunc("GET /api/v1/investigations", s.listInvestigations)
+	mux.HandleFunc("GET /api/v1/investigations/{id}", s.getInvestigation)
+	mux.HandleFunc("GET /api/v1/recommendations/{id}", s.getRecommendation)
+	mux.HandleFunc("GET /api/v1/remediations", s.listRemediations)
+	mux.HandleFunc("GET /api/v1/remediations/{id}", s.getRemediation)
+	mux.HandleFunc("POST /api/v1/remediations/{id}/approve", s.approveRemediation)
+	mux.HandleFunc("POST /api/v1/remediations/{id}/reject", s.rejectRemediation)
+	mux.HandleFunc("GET /api/v1/deployments", s.listDeployments)
 
 	recoverer := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +159,7 @@ func (s *Server) currentUser(w http.ResponseWriter, r *http.Request) (auth.User,
 }
 
 func (s *Server) authenticate(r *http.Request) (auth.User, error) {
-	user, _, err := s.auth.Authenticate(r.Context(), bearerToken(r))
+	user, _, err := s.auth.Authenticate(r.Context(), sessionToken(r))
 	return user, err
 }
 

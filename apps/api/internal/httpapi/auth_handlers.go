@@ -18,6 +18,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, s.log, err)
 		return
 	}
+	s.setSessionCookie(w, result.Token, result.ExpiresAt)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"data": map[string]any{
 			"token": result.Token,
@@ -32,10 +33,11 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
-	if err := s.auth.Logout(r.Context(), bearerToken(r)); err != nil {
+	if err := s.auth.Logout(r.Context(), sessionToken(r)); err != nil {
 		writeError(w, r, s.log, err)
 		return
 	}
+	s.clearSessionCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 

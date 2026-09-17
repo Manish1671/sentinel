@@ -31,6 +31,7 @@ All error responses use this body (see `packages/contracts/api/error.v1.schema.j
 | 409 | `investigation_already_terminal` | New work on a terminal investigation |
 | 429 | `rate_limited` | Too many requests |
 | 500 | `internal_error` | Unexpected failure |
+| 503 | `service_unavailable` | Downstream control-plane dependency (e.g. remediation service) is down |
 
 ## Validation errors
 

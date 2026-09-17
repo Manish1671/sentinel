@@ -51,6 +51,21 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (Incident, error) {
 	return in, err
 }
 
+func (s *Service) GetByReference(ctx context.Context, reference string) (Incident, error) {
+	in, err := s.repo.GetByReference(ctx, reference)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Incident{}, apierr.NotFound("Incident not found.")
+	}
+	return in, err
+}
+
+func (s *Service) Resolve(ctx context.Context, idOrRef string) (Incident, error) {
+	if id, err := uuid.Parse(idOrRef); err == nil {
+		return s.Get(ctx, id)
+	}
+	return s.GetByReference(ctx, idOrRef)
+}
+
 func (s *Service) Timeline(ctx context.Context, incidentID uuid.UUID, limit int, cursor string) ([]TimelineEvent, paging.Page, error) {
 	if _, err := s.Get(ctx, incidentID); err != nil {
 		return nil, paging.Page{}, err

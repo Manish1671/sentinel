@@ -33,8 +33,10 @@ func (s *Server) listServices(w http.ResponseWriter, r *http.Request) {
 			"slug":          item.Slug,
 			"name":          item.Name,
 			"environment":   item.Environment,
-			"health_status": item.HealthStatus,
-			"owner_user_id": item.OwnerUserID,
+			"health_status":        item.HealthStatus,
+			"owner_user_id":        item.OwnerUserID,
+			"current_version":      item.CurrentVersion,
+			"active_incident_count": item.ActiveIncidentCount,
 		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -75,9 +77,11 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 			"name":               item.Name,
 			"environment":        item.Environment,
 			"description":        item.Description,
-			"health_status":      item.HealthStatus,
-			"owner_user_id":      item.OwnerUserID,
-			"recent_deployments": deployments,
+			"health_status":         item.HealthStatus,
+			"owner_user_id":         item.OwnerUserID,
+			"current_version":       item.CurrentVersion,
+			"active_incident_count": item.ActiveIncidentCount,
+			"recent_deployments":    deployments,
 		},
 	})
 }

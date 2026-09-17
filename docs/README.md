@@ -4,7 +4,7 @@ Project documentation. Start with [architecture/README.md](./architecture/README
 
 | Path | Contents |
 | --- | --- |
-| `architecture/` | Product, services, data, security, domain |
+| `architecture/` | Product, services, data, security, domain, frontend |
 | `api/` | HTTP API v1 contract |
 | `architecture/idempotency.md` | Idempotency and audit contract |
 | `events/` | Kafka topics and envelopes |

@@ -19,6 +19,9 @@ type Incident struct {
 	ID              uuid.UUID
 	Reference       string
 	ServiceID       uuid.UUID
+	ServiceSlug     string
+	ServiceName     string
+	Environment     string
 	Title           string
 	Summary         string
 	Severity        string

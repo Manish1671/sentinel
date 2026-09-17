@@ -39,20 +39,30 @@ func (r *Repository) AlertsForService(ctx context.Context, serviceID uuid.UUID, 
 }
 
 func (r *Repository) Get(ctx context.Context, id uuid.UUID) (Incident, error) {
+	return r.getWhere(ctx, `i.id = $1`, id)
+}
+
+func (r *Repository) GetByReference(ctx context.Context, reference string) (Incident, error) {
+	return r.getWhere(ctx, `i.reference = $1`, reference)
+}
+
+func (r *Repository) getWhere(ctx context.Context, where string, arg any) (Incident, error) {
 	var in Incident
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, reference, service_id, title, summary, severity::text, status::text,
-		       created_by_user_id, commander_user_id, detected_at, resolved_at, closed_at, version
-		FROM incidents
-		WHERE id = $1
-	`, id).Scan(
-		&in.ID, &in.Reference, &in.ServiceID, &in.Title, &in.Summary, &in.Severity, &in.Status,
+		SELECT i.id, i.reference, i.service_id, s.slug, s.name, s.environment::text,
+		       i.title, i.summary, i.severity::text, i.status::text,
+		       i.created_by_user_id, i.commander_user_id, i.detected_at, i.resolved_at, i.closed_at, i.version
+		FROM incidents i
+		JOIN services s ON s.id = i.service_id
+		WHERE `+where, arg).Scan(
+		&in.ID, &in.Reference, &in.ServiceID, &in.ServiceSlug, &in.ServiceName, &in.Environment,
+		&in.Title, &in.Summary, &in.Severity, &in.Status,
 		&in.CreatedByUserID, &in.CommanderUserID, &in.DetectedAt, &in.ResolvedAt, &in.ClosedAt, &in.Version,
 	)
 	if err != nil {
 		return Incident{}, err
 	}
-	ids, err := r.alertIDs(ctx, id)
+	ids, err := r.alertIDs(ctx, in.ID)
 	if err != nil {
 		return Incident{}, err
 	}
@@ -85,14 +95,16 @@ func (r *Repository) alertIDs(ctx context.Context, incidentID uuid.UUID) ([]uuid
 func (r *Repository) List(ctx context.Context, filter ListFilter, serviceID uuid.UUID, cursorTime time.Time, cursorID uuid.UUID) ([]Incident, error) {
 	useCursor := cursorID != uuid.Nil
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, reference, service_id, title, summary, severity::text, status::text,
-		       created_by_user_id, commander_user_id, detected_at, resolved_at, closed_at, version
-		FROM incidents
-		WHERE ($1 = '' OR status::text = $1)
-		  AND ($2::uuid IS NULL OR service_id = $2)
-		  AND ($3 = '' OR severity::text = $3)
-		  AND ($4 OR (detected_at, id) < ($5, $6))
-		ORDER BY detected_at DESC, id DESC
+		SELECT i.id, i.reference, i.service_id, s.slug, s.name, s.environment::text,
+		       i.title, i.summary, i.severity::text, i.status::text,
+		       i.created_by_user_id, i.commander_user_id, i.detected_at, i.resolved_at, i.closed_at, i.version
+		FROM incidents i
+		JOIN services s ON s.id = i.service_id
+		WHERE ($1 = '' OR i.status::text = $1)
+		  AND ($2::uuid IS NULL OR i.service_id = $2)
+		  AND ($3 = '' OR i.severity::text = $3)
+		  AND ($4 OR (i.detected_at, i.id) < ($5, $6))
+		ORDER BY i.detected_at DESC, i.id DESC
 		LIMIT $7
 	`, filter.Status, uuidOrNil(serviceID), filter.Severity, !useCursor, cursorTime, cursorID, filter.Limit)
 	if err != nil {
@@ -103,7 +115,8 @@ func (r *Repository) List(ctx context.Context, filter ListFilter, serviceID uuid
 	for rows.Next() {
 		var in Incident
 		if err := rows.Scan(
-			&in.ID, &in.Reference, &in.ServiceID, &in.Title, &in.Summary, &in.Severity, &in.Status,
+			&in.ID, &in.Reference, &in.ServiceID, &in.ServiceSlug, &in.ServiceName, &in.Environment,
+			&in.Title, &in.Summary, &in.Severity, &in.Status,
 			&in.CreatedByUserID, &in.CommanderUserID, &in.DetectedAt, &in.ResolvedAt, &in.ClosedAt, &in.Version,
 		); err != nil {
 			return nil, err

@@ -23,8 +23,9 @@ func NewService(repo *Repository, tokens *TokenService) *Service {
 }
 
 type LoginResult struct {
-	Token string
-	User  User
+	Token     string
+	ExpiresAt time.Time
+	User      User
 }
 
 func (s *Service) Login(ctx context.Context, email, password string) (LoginResult, error) {
@@ -65,7 +66,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (LoginResul
 	if err := s.repo.CreateSession(ctx, Session{ID: sessionID, UserID: user.ID, ExpiresAt: exp}); err != nil {
 		return LoginResult{}, err
 	}
-	return LoginResult{Token: token, User: user}, nil
+	return LoginResult{Token: token, ExpiresAt: exp, User: user}, nil
 }
 
 func (s *Service) Authenticate(ctx context.Context, token string) (User, uuid.UUID, error) {

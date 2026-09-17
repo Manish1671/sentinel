@@ -18,6 +18,8 @@ type Config struct {
 	MigrationsPath  string
 	AuthTokenSecret string
 	AuthTokenTTL    time.Duration
+	RemediationURL  string
+	CookieSecure    bool
 	RequestTimeout  time.Duration
 	ReadTimeout     time.Duration
 	WriteTimeout    time.Duration
@@ -36,6 +38,7 @@ func Load() (Config, error) {
 		MigrationsPath:  firstEnv("MIGRATIONS_PATH"),
 		AuthTokenSecret: firstEnv("AUTH_TOKEN_SECRET"),
 		AuthTokenTTL:    12 * time.Hour,
+		RemediationURL:  firstEnv("REMEDIATION_URL"),
 		RequestTimeout:  30 * time.Second,
 		ReadTimeout:     15 * time.Second,
 		WriteTimeout:    30 * time.Second,
@@ -56,6 +59,7 @@ func Load() (Config, error) {
 		}
 		cfg.Port = port
 	}
+	cfg.CookieSecure = cfg.Environment == "production" || cfg.Environment == "staging"
 	if v := firstEnv("AUTH_TOKEN_TTL"); v != "" {
 		d, err := time.ParseDuration(v)
 		if err != nil || d <= 0 {

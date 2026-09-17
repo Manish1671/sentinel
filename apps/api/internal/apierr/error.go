@@ -68,6 +68,17 @@ func Internal() *Error {
 	return New(http.StatusInternalServerError, "internal_error", "An internal error occurred.")
 }
 
+func Unavailable(message string) *Error {
+	if message == "" {
+		message = "A required downstream service is unavailable."
+	}
+	return New(http.StatusServiceUnavailable, "service_unavailable", message)
+}
+
+func ApprovalAlreadyDecided() *Error {
+	return New(http.StatusConflict, "approval_already_decided", "This remediation has already been decided.")
+}
+
 func As(err error) (*Error, bool) {
 	var api *Error
 	if errors.As(err, &api) {

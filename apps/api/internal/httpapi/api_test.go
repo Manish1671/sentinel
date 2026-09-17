@@ -385,3 +385,114 @@ func TestIncidentIdempotency(t *testing.T) {
 		t.Fatalf("code=%s", env.Error.Code)
 	}
 }
+
+func TestIncidentByReferenceAndOpsReads(t *testing.T) {
+	s := testServer(t)
+	h := s.Handler()
+	token := loginToken(t, h, "sam.okonkwo@sentinel.dev", "sentinel-dev")
+
+	rec := doJSON(t, h, http.MethodGet, "/api/v1/incidents/INC-2026-0004", token, nil, nil)
+	if rec.Code != 200 {
+		t.Fatalf("by ref=%d %s", rec.Code, rec.Body.String())
+	}
+	var incident struct {
+		Data struct {
+			Reference  string `json:"reference"`
+			ServiceSlug string `json:"service_slug"`
+			Environment string `json:"environment"`
+		} `json:"data"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &incident)
+	if incident.Data.Reference != "INC-2026-0004" || incident.Data.ServiceSlug != "payments-api" {
+		t.Fatalf("incident=%s", rec.Body.String())
+	}
+
+	rec = doJSON(t, h, http.MethodGet, "/api/v1/incidents/INC-2026-0004/alerts", token, nil, nil)
+	if rec.Code != 200 {
+		t.Fatalf("alerts=%d %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodGet, "/api/v1/incidents/INC-2026-0004/investigations", token, nil, nil)
+	if rec.Code != 200 {
+		t.Fatalf("investigations=%d %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodGet, "/api/v1/investigations/44444444-4444-4444-8444-444444444441", token, nil, nil)
+	if rec.Code != 200 {
+		t.Fatalf("investigation=%d %s", rec.Code, rec.Body.String())
+	}
+	var inv struct {
+		Data struct {
+			Status   string `json:"status"`
+			Evidence []any  `json:"evidence"`
+		} `json:"data"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &inv)
+	if inv.Data.Status != "completed" || len(inv.Data.Evidence) == 0 {
+		t.Fatalf("investigation body=%s", rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodGet, "/api/v1/incidents/INC-2026-0004/recommendations", token, nil, nil)
+	if rec.Code != 200 {
+		t.Fatalf("recommendations=%d %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodGet, "/api/v1/incidents/INC-2026-0004/remediations", token, nil, nil)
+	if rec.Code != 200 {
+		t.Fatalf("remediations=%d %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, h, http.MethodGet, "/api/v1/deployments", token, nil, nil)
+	if rec.Code != 200 {
+		t.Fatalf("deployments=%d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCookieAuth(t *testing.T) {
+	s := testServer(t)
+	h := s.Handler()
+	rec := doJSON(t, h, http.MethodPost, "/api/v1/auth/login", "", map[string]string{
+		"email":    "sam.okonkwo@sentinel.dev",
+		"password": "sentinel-dev",
+	}, nil)
+	if rec.Code != 200 {
+		t.Fatalf("login=%d %s", rec.Code, rec.Body.String())
+	}
+	cookie := rec.Result().Cookies()
+	var session *http.Cookie
+	for _, c := range cookie {
+		if c.Name == "sentinel_session" {
+			session = c
+			break
+		}
+	}
+	if session == nil || session.Value == "" || !session.HttpOnly {
+		t.Fatalf("cookie=%v", cookie)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req.AddCookie(session)
+	got := httptest.NewRecorder()
+	h.ServeHTTP(got, req)
+	if got.Code != 200 {
+		t.Fatalf("me cookie=%d %s", got.Code, got.Body.String())
+	}
+}
+
+func TestViewerCannotApprove(t *testing.T) {
+	s := testServer(t)
+	h := s.Handler()
+	token := loginToken(t, h, "riley.park@sentinel.dev", "sentinel-dev")
+	rec := doJSON(t, h, http.MethodPost, "/api/v1/remediations/66666666-6666-4666-8666-666666666661/approve", token, map[string]string{
+		"comment": "no",
+	}, map[string]string{"Idempotency-Key": "viewer-cannot-approve-1"})
+	if rec.Code != 403 {
+		t.Fatalf("code=%d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestApproveWithoutRemediationService(t *testing.T) {
+	s := testServer(t)
+	h := s.Handler()
+	token := loginToken(t, h, "jordan.hale@sentinel.dev", "sentinel-dev")
+	rec := doJSON(t, h, http.MethodPost, "/api/v1/remediations/66666666-6666-4666-8666-666666666661/approve", token, map[string]string{
+		"comment": "try",
+	}, map[string]string{"Idempotency-Key": "approver-no-gateway-1"})
+	if rec.Code != 503 {
+		t.Fatalf("code=%d %s", rec.Code, rec.Body.String())
+	}
+}

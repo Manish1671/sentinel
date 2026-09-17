@@ -41,3 +41,19 @@ func CanWriteIncidents(role string) bool {
 		return false
 	}
 }
+
+func CanApproveRemediations(role string) bool {
+	switch role {
+	case "approver", "admin":
+		return true
+	default:
+		return false
+	}
+}
+
+func MeetsApprovalRole(actorRole, required string) bool {
+	if required == "admin" {
+		return actorRole == "admin"
+	}
+	return CanApproveRemediations(actorRole)
+}

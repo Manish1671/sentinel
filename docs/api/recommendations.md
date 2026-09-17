@@ -36,3 +36,11 @@
 ```
 
 **Status.** `200` · `401` · `404` (incident).
+
+## GET /api/v1/recommendations/:id
+
+**Purpose.** Single recommendation.
+
+**Auth.** Bearer. Roles: any authenticated.
+
+**Status.** `200` · `401` · `404`.

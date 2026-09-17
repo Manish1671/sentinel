@@ -2,13 +2,7 @@
 
 ## Authentication
 
-Authenticated endpoints require:
-
-```
-Authorization: Bearer <token>
-```
-
-Tokens are issued by `POST /api/v1/auth/login`. Phase 1 does not define token storage (later: signed session). Unauthenticated calls return `401` `unauthenticated`. Disabled users return `401` `user_disabled`.
+Authenticated endpoints require `Authorization: Bearer <token>` **or** the HttpOnly cookie `sentinel_session`. Tokens are issued by `POST /api/v1/auth/login`. Unauthenticated calls return `401` `unauthenticated`. Disabled users return `401` `user_disabled`.
 
 `GET /health` and `GET /ready` are unauthenticated.
 

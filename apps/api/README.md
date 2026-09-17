@@ -4,7 +4,7 @@ Go HTTP control plane for Sentinel.
 
 ## Responsibility
 
-Synchronous API for operators: authentication, service catalog reads, incident reads/creates, and incident timelines.
+Synchronous API for operators: authentication, service catalog, incidents, investigations, recommendations, remediations, and deployment reads. Approve/reject are authorized here and delegated to `services/remediation`.
 
 This service does **not** ingest telemetry, run detection, execute remediations, or call the AI investigator.
 
@@ -56,7 +56,7 @@ Get-ChildItem database/seeds/*.sql | ForEach-Object { psql $env:DATABASE_URL -v 
 | `AUTH_TOKEN_SECRET` | yes | HMAC secret for signed session tokens (≥16 chars) |
 | `AUTH_TOKEN_TTL` | no | Token lifetime (default `12h`) |
 | `REDIS_URL` | no | Included in `/ready` when set |
-| `KAFKA_BROKERS` | no | Placeholder for later phases |
+| `REMEDIATION_URL` | no | `services/remediation` base URL for approve/reject proxy |
 | `PORT` | no | Listen port (default `8080`) |
 | `ENVIRONMENT` | no | `development` auto-runs migrations on start |
 | `LOG_LEVEL` | no | `debug` / `info` / `warn` / `error` |
@@ -89,7 +89,7 @@ Seed users share the local password `sentinel-dev`. This is development-only.
 curl -s http://localhost:8080/api/v1/auth/login -H "Content-Type: application/json" -d "{\"email\":\"sam.okonkwo@sentinel.dev\",\"password\":\"sentinel-dev\"}"
 ```
 
-Send `Authorization: Bearer <token>` on authenticated routes. Logout revokes the session in PostgreSQL.
+Send `Authorization: Bearer <token>` on authenticated routes, or the HttpOnly `sentinel_session` cookie. Logout revokes the session in PostgreSQL and clears the cookie.
 
 ## Available endpoints
 
@@ -106,8 +106,20 @@ Send `Authorization: Bearer <token>` on authenticated routes. Logout revokes the
 | POST | `/api/v1/incidents` |
 | GET | `/api/v1/incidents/:id` |
 | GET | `/api/v1/incidents/:id/timeline` |
+| GET | `/api/v1/incidents/:id/alerts` |
+| GET | `/api/v1/incidents/:id/investigations` |
+| GET | `/api/v1/incidents/:id/recommendations` |
+| GET | `/api/v1/incidents/:id/remediations` |
+| GET | `/api/v1/investigations` |
+| GET | `/api/v1/investigations/:id` |
+| GET | `/api/v1/recommendations/:id` |
+| GET | `/api/v1/remediations` |
+| GET | `/api/v1/remediations/:id` |
+| POST | `/api/v1/remediations/:id/approve` |
+| POST | `/api/v1/remediations/:id/reject` |
+| GET | `/api/v1/deployments` |
 
-`POST /api/v1/incidents` requires `Idempotency-Key` and role `responder`, `approver`, or `admin`.
+`POST /api/v1/incidents` requires `Idempotency-Key` and role `responder`, `approver`, or `admin`. Approve/reject require `Idempotency-Key` and role `approver` or `admin`. Incident `:id` may be UUID or `INC-YYYY-NNNN`.
 
 ## Testing
 

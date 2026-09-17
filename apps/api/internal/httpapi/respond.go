@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/sentinel-dev/sentinel/apps/api/internal/apierr"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/middleware"
@@ -64,5 +65,39 @@ func bearerToken(r *http.Request) string {
 	if len(h) > len(prefix) && h[:len(prefix)] == prefix {
 		return h[len(prefix):]
 	}
+	if c, err := r.Cookie(sessionCookieName); err == nil {
+		return c.Value
+	}
 	return ""
+}
+
+func sessionToken(r *http.Request) string {
+	return bearerToken(r)
+}
+
+const sessionCookieName = "sentinel_session"
+
+func (s *Server) setSessionCookie(w http.ResponseWriter, token string, expires time.Time) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    token,
+		Path:     "/",
+		Expires:  expires,
+		MaxAge:   int(time.Until(expires).Seconds()),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   s.cfg.CookieSecure,
+	})
+}
+
+func (s *Server) clearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   s.cfg.CookieSecure,
+	})
 }

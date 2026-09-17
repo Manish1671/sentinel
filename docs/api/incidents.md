@@ -17,6 +17,9 @@
       "id": "33333333-3333-4333-8333-333333333334",
       "reference": "INC-2026-0004",
       "service_id": "22222222-2222-4222-8222-222222222221",
+      "service_slug": "payments-api",
+      "service_name": "Payments API",
+      "environment": "production",
       "title": "Payments capture failures after 1.18.0",
       "severity": "critical",
       "status": "investigating",
@@ -59,7 +62,7 @@
 
 ## GET /api/v1/incidents/:id
 
-**Purpose.** Incident detail for the operator view.
+**Purpose.** Incident detail for the operator view. `:id` may be a UUID or an `INC-YYYY-NNNN` reference.
 
 **Auth.** Bearer. Roles: any authenticated.
 
@@ -71,6 +74,9 @@
     "id": "33333333-3333-4333-8333-333333333334",
     "reference": "INC-2026-0004",
     "service_id": "22222222-2222-4222-8222-222222222221",
+    "service_slug": "payments-api",
+    "service_name": "Payments API",
+    "environment": "production",
     "title": "Payments capture failures after 1.18.0",
     "summary": "Capture error rate 8.3% and p99 1640ms following synchronous inventory reservation.",
     "severity": "critical",
@@ -118,5 +124,15 @@
   "page": { "next_cursor": null, "limit": 20 }
 }
 ```
+
+**Status.** `200` · `401` · `404`.
+
+## GET /api/v1/incidents/:id/alerts
+
+**Purpose.** Alerts attached to the incident.
+
+**Auth.** Bearer. Roles: any authenticated.
+
+**Response `200`.** `{ "data": [ { "id", "detector_id", "severity", "status", "title", "summary", "started_at" } ] }`
 
 **Status.** `200` · `401` · `404`.
