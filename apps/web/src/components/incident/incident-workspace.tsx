@@ -38,6 +38,17 @@ async function settle<T>(promise: Promise<T>): Promise<Section<T>> {
   }
 }
 
+function pickRemediation<T extends { status: string }>(items: T[], incidentStatus: string): T | null {
+  if (incidentStatus === "resolved" || incidentStatus === "closed") {
+    return items.find((item) => item.status === "succeeded" || item.status === "failed") ?? items[0] ?? null;
+  }
+  return (
+    items.find((item) => ["pending_approval", "approved", "running", "verifying"].includes(item.status)) ??
+    items[0] ??
+    null
+  );
+}
+
 function deploymentFromAlerts(alerts: AlertDetail[]): string | null {
   for (const alert of alerts) {
     const version =
@@ -68,7 +79,8 @@ async function loadWorkspace(id: string, signal: AbortSignal) {
   const alertItems = alerts.data?.data ?? [];
   const investigation = investigationDetail.data?.data ?? null;
   const recommendation = recommendations.data?.data[0] ?? null;
-  const remediation = remediations.data?.data[0] ?? null;
+  const remediationsList = remediations.data?.data ?? [];
+  const remediation = pickRemediation(remediationsList, incident.status);
   const correlation = resolveCorrelation(events, incident, alertItems);
 
   return {

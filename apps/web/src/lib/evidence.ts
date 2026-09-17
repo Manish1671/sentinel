@@ -37,6 +37,7 @@ const ALIASES: Record<string, EvidenceCategory> = {
   historical: "historical_incidents",
   historical_incidents: "historical_incidents",
   incident: "historical_incidents",
+  previous_incident: "historical_incidents",
 };
 
 export function evidenceCategory(item: EvidenceItem): EvidenceCategory {
