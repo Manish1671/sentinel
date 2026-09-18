@@ -9,14 +9,17 @@ from app.agent.processor import Processor
 from app.api.routes import router
 from app.config import default_migrations_path, get_settings
 from app.kafka.client import KafkaIO, consume_loop
+from app.observability.http import ObservabilityMiddleware
 from app.observability.log import setup_logging
+from app.observability.otel import setup_tracing
 from app.storage.db import connect, migrate
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    setup_logging(settings.log_level)
+    setup_logging(settings.log_level, service="sentinel-ai", environment=settings.environment)
+    setup_tracing("sentinel-ai", settings.environment)
     mig = settings.migrations_path or default_migrations_path()
     migrate(settings.database_url, mig)
     conn = connect(settings.database_url)
@@ -42,4 +45,5 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="sentinel-ai", lifespan=lifespan)
+app.add_middleware(ObservabilityMiddleware)
 app.include_router(router)

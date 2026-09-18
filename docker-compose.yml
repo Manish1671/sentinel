@@ -81,8 +81,15 @@ services:
       PORT: "8090"
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "8090:8090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8090/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
 
   detection:
     build:
@@ -104,8 +111,15 @@ services:
       MIGRATIONS_PATH: /app/database/migrations
       SEEDS_PATH: /app/database/seeds
       SEED_ON_START: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "8091:8091"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8091/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 20s
 
   incident:
     build:
@@ -128,8 +142,15 @@ services:
       SEEDS_PATH: /app/database/seeds
       SEED_ON_START: "true"
       INCIDENT_CORRELATION_WINDOW_SECONDS: ${INCIDENT_CORRELATION_WINDOW_SECONDS:-300}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "8092:8092"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8092/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 20s
 
   ai:
     build:
@@ -152,8 +173,15 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-sentinel-investigator}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
 
   remediation:
     build:
@@ -174,10 +202,90 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       MIGRATIONS_PATH: /app/database/migrations
       AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-local-dev-token-secret}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     ports:
       - "8093:8093"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8093/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 20s
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.110.0
+    container_name: sentinel-otel-collector
+    restart: unless-stopped
+    profiles: ["observability"]
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./observability/otel/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "13133:13133"
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "validate", "--config=/etc/otelcol/config.yaml"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: sentinel-prometheus
+    restart: unless-stopped
+    profiles: ["observability"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=24h
+      - --web.enable-lifecycle
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - sentinel_prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: sentinel-grafana
+    restart: unless-stopped
+    profiles: ["observability"]
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SERVER_ROOT_URL: http://localhost:${GRAFANA_PORT:-3002}
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - sentinel_grafana_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3002}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
 
 volumes:
   sentinel_postgres_data:
   sentinel_redis_data:
   sentinel_kafka_data:
+  sentinel_prometheus_data:
+  sentinel_grafana_data:

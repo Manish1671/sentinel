@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 type Processed struct {
@@ -38,14 +40,25 @@ func (s *Store) ServiceExists(ctx context.Context, id uuid.UUID) (bool, error) {
 func (s *Store) GetProcessed(ctx context.Context, eventID uuid.UUID) (Processed, error) {
 	var p Processed
 	var ids []uuid.UUID
-	err := s.db.Pool.QueryRow(ctx, `
+	found := false
+	err := telemetry.DBOp(ctx, "get_processed", func(ctx context.Context) error {
+		qerr := s.db.Pool.QueryRow(ctx, `
 		SELECT published, outcome, alert_ids FROM detection_processed_events WHERE event_id = $1
 	`, eventID).Scan(&p.Published, &p.Outcome, &ids)
-	if err == pgx.ErrNoRows {
-		return Processed{}, nil
-	}
+		if qerr == pgx.ErrNoRows {
+			return nil
+		}
+		if qerr != nil {
+			return qerr
+		}
+		found = true
+		return nil
+	})
 	if err != nil {
 		return Processed{}, err
+	}
+	if !found {
+		return Processed{}, nil
 	}
 	p.Exists = true
 	p.AlertIDs = ids

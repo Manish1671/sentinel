@@ -27,6 +27,14 @@ func (s *Store) Ping(ctx context.Context) error {
 	return s.db.Ping(ctx)
 }
 
+func (s *Store) CountActive(ctx context.Context) (int, error) {
+	var n int
+	err := s.db.Pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM incidents WHERE status::text NOT IN ('resolved', 'closed')
+	`).Scan(&n)
+	return n, err
+}
+
 func (s *Store) DB() *DB { return s.db }
 
 type Processed struct {

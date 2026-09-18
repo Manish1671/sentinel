@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import os
 import time
 from typing import Any
 
 import psycopg
 
+from app.observability import metrics as m
+from app.observability.otel import tracer
 from app.tools import impl
 from app.tools.common import no_evidence
 from app.tools.schemas import ToolDenied, authorize, validate_args
@@ -27,11 +30,14 @@ class ToolRuntime:
         handler = impl.HANDLERS[name]
         start = time.perf_counter()
         status = "ok"
+        env = os.getenv("ENVIRONMENT", "development")
         try:
-            result = handler(self.conn, cleaned, ctx)
-            if result.get("code") == "no_evidence":
-                status = "ok"
-            return result
+            with tracer().start_as_current_span("sentinel.ai.tool") as span:
+                span.set_attribute("tool", name)
+                result = handler(self.conn, cleaned, ctx)
+                if result.get("code") == "no_evidence":
+                    status = "ok"
+                return result
         except ToolDenied:
             raise
         except Exception as exc:  # noqa: BLE001 — tools must not abort the investigation
@@ -45,6 +51,9 @@ class ToolRuntime:
             rec["duration_ms"] += ms
             if status != "ok":
                 rec["status"] = status
+            m.AI_TOOL_CALLS.labels(service=m.SERVICE, environment=env, tool=name, status=status).inc()
+            if status != "ok":
+                m.AI_TOOL_FAILURES.labels(service=m.SERVICE, environment=env, tool=name, status=status).inc()
 
     def usage_list(self) -> list[dict[str, Any]]:
         return list(self.usage.values())

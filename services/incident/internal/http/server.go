@@ -14,6 +14,7 @@ import (
 
 	"github.com/sentinel-dev/sentinel/services/incident/internal/config"
 	"github.com/sentinel-dev/sentinel/services/incident/internal/database"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 type readiness interface {
@@ -51,7 +52,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /api/v1/incidents", s.listIncidents)
 	mux.HandleFunc("GET /api/v1/incidents/{id}", s.getIncident)
 	mux.HandleFunc("GET /api/v1/incidents/{id}/timeline", s.timeline)
-	return mux
+	return telemetry.WrapHTTP(mux)
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {

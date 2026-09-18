@@ -6,6 +6,7 @@ from app.config import Settings
 from app.evidence.normalize import build_context, normalize_tool_result
 from app.models.contracts import InvestigationRequest, InvestigationResult
 from app.models.llm import HeuristicProvider, LLMProvider, build_provider, validate_result
+from app.observability.otel import tracer
 from app.tools.runtime import ToolRuntime
 
 METRIC_NAMES = ("latency", "error_rate", "connection", "db")
@@ -50,22 +51,27 @@ def investigate(
     }
     evidence_rows: list[dict[str, Any]] = []
     allowed = set(req.allowed_tools)
-    for name, args in planned_calls(req):
-        if name not in allowed:
-            continue
-        if tools.calls >= settings.max_tool_calls:
-            break
-        result = tools.call(name, args, ctx)
-        evidence_rows.extend(normalize_tool_result(req.investigation_id, name, result))
-        if tools.calls >= settings.max_investigation_steps + 4:
-            break
+    with tracer().start_as_current_span("sentinel.ai.retrieval"):
+        for name, args in planned_calls(req):
+            if name not in allowed:
+                continue
+            if tools.calls >= settings.max_tool_calls:
+                break
+            result = tools.call(name, args, ctx)
+            evidence_rows.extend(normalize_tool_result(req.investigation_id, name, result))
+            if tools.calls >= settings.max_investigation_steps + 4:
+                break
 
     context = build_context(req.model_dump(mode="json"), evidence_rows, timeline, settings.max_context_chars)
     llm = provider or build_provider(settings)
     try:
-        raw = llm.complete(context, req.investigation_id, req.incident_id, req.service.id)
-        result = validate_result(raw, req.investigation_id, req.incident_id, evidence_rows, tools.usage_list(), settings)
+        with tracer().start_as_current_span("sentinel.ai.model"):
+            raw = llm.complete(context, req.investigation_id, req.incident_id, req.service.id)
+        with tracer().start_as_current_span("sentinel.ai.validate"):
+            result = validate_result(raw, req.investigation_id, req.incident_id, evidence_rows, tools.usage_list(), settings)
     except Exception:
-        raw = HeuristicProvider(settings).complete(context, req.investigation_id, req.incident_id, req.service.id)
-        result = validate_result(raw, req.investigation_id, req.incident_id, evidence_rows, tools.usage_list(), settings)
+        with tracer().start_as_current_span("sentinel.ai.model"):
+            raw = HeuristicProvider(settings).complete(context, req.investigation_id, req.incident_id, req.service.id)
+        with tracer().start_as_current_span("sentinel.ai.validate"):
+            result = validate_result(raw, req.investigation_id, req.incident_id, evidence_rows, tools.usage_list(), settings)
     return result, evidence_rows

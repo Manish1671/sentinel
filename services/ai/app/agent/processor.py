@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import timezone
+import os
+import time
 from uuid import UUID, uuid4
 
 from app.agent.investigator import investigate
@@ -18,9 +19,12 @@ from app.kafka.envelope import (
 )
 from app.models.contracts import InvestigationRequest, utcnow
 from app.storage import investigations as store
+from app.observability import metrics as m
+from app.observability.otel import tracer
 from app.tools.runtime import ToolRuntime
 
 log = logging.getLogger("sentinel.ai")
+_ENV = os.getenv("ENVIRONMENT", "development")
 
 
 class Processor:
@@ -44,6 +48,10 @@ class Processor:
             log.info("event_duplicate event_id=%s investigation_id=%s", event_id, prev["investigation_id"])
             return
         req = InvestigationRequest.model_validate(env["payload"])
+        log.info(
+            "investigation_requested",
+            extra={"event_id": str(event_id), "investigation_id": str(req.investigation_id), "incident_id": str(req.incident_id)},
+        )
         await self.run(req, causation_id=event_id, kafka_event_id=event_id)
 
     async def run(
@@ -54,51 +62,62 @@ class Processor:
     ) -> dict:
         idem = f"investigation:{req.investigation_id}"
         row = store.upsert_investigation_requested(self.conn, req, idem)
-        if row["status"] in ("completed", "failed"):
-            await self._publish_terminal(row, req, causation_id, kafka_event_id)
-            return {"id": str(row["id"]), "status": row["status"], "duplicate": True}
+        started = time.perf_counter()
+        with tracer().start_as_current_span("sentinel.ai.investigation"):
+            if row["status"] in ("completed", "failed"):
+                await self._publish_terminal(row, req, causation_id, kafka_event_id)
+                return {"id": str(row["id"]), "status": row["status"], "duplicate": True}
 
-        if not store.mark_running(self.conn, req.investigation_id):
-            row = store.get_investigation(self.conn, req.investigation_id)
-            return {"id": str(req.investigation_id), "status": row["status"] if row else "unknown"}
+            if not store.mark_running(self.conn, req.investigation_id):
+                row = store.get_investigation(self.conn, req.investigation_id)
+                return {"id": str(req.investigation_id), "status": row["status"] if row else "unknown"}
 
-        bundle = store.load_incident_bundle(self.conn, req.incident_id) or {"timeline": []}
-        tools = ToolRuntime(
-            self.conn,
-            req.allowed_tools,
-            self.settings.tool_timeout_seconds,
-            self.settings.max_tool_calls,
-        )
-        try:
-            result, evidence = investigate(req, tools, self.settings, bundle.get("timeline") or [])
-            store.persist_success(self.conn, result, evidence, kafka_event_id)
-            payload = {
-                "investigation_id": str(result.investigation_id),
-                "incident_id": str(result.incident_id),
-                "status": "completed",
-                "error_message": None,
-                "result": result.model_dump(mode="json"),
-            }
-            await self._emit_completed(req, payload, causation_id, kafka_event_id, "completed")
-            log.info(
-                "investigation_complete investigation_id=%s incident_id=%s confidence=%s",
-                result.investigation_id,
-                result.incident_id,
-                result.confidence,
+            m.AI_STARTED.labels(service=m.SERVICE, environment=_ENV, status="running").inc()
+            bundle = store.load_incident_bundle(self.conn, req.incident_id) or {"timeline": []}
+            tools = ToolRuntime(
+                self.conn,
+                req.allowed_tools,
+                self.settings.tool_timeout_seconds,
+                self.settings.max_tool_calls,
             )
-            return {"id": str(result.investigation_id), "status": "completed", "result": result.model_dump(mode="json")}
-        except Exception as exc:  # noqa: BLE001
-            store.persist_failure(self.conn, req.investigation_id, req.incident_id, str(exc), kafka_event_id)
-            payload = {
-                "investigation_id": str(req.investigation_id),
-                "incident_id": str(req.incident_id),
-                "status": "failed",
-                "error_message": str(exc)[:2000],
-                "result": None,
-            }
-            await self._emit_completed(req, payload, causation_id, kafka_event_id, "failed")
-            log.error("investigation_failed investigation_id=%s error=%s", req.investigation_id, exc)
-            return {"id": str(req.investigation_id), "status": "failed", "error": str(exc)}
+            try:
+                result, evidence = investigate(req, tools, self.settings, bundle.get("timeline") or [])
+                with tracer().start_as_current_span("sentinel.db.persist"):
+                    store.persist_success(self.conn, result, evidence, kafka_event_id)
+                payload = {
+                    "investigation_id": str(result.investigation_id),
+                    "incident_id": str(result.incident_id),
+                    "status": "completed",
+                    "error_message": None,
+                    "result": result.model_dump(mode="json"),
+                }
+                await self._emit_completed(req, payload, causation_id, kafka_event_id, "completed")
+                m.AI_COMPLETED.labels(service=m.SERVICE, environment=_ENV, status="completed").inc()
+                m.AI_DURATION.labels(service=m.SERVICE, environment=_ENV, status="completed").observe(time.perf_counter() - started)
+                log.info(
+                    "investigation_complete",
+                    extra={"investigation_id": str(result.investigation_id), "incident_id": str(result.incident_id)},
+                )
+                return {"id": str(result.investigation_id), "status": "completed", "result": result.model_dump(mode="json")}
+            except Exception as exc:  # noqa: BLE001
+                with tracer().start_as_current_span("sentinel.db.persist"):
+                    store.persist_failure(self.conn, req.investigation_id, req.incident_id, str(exc), kafka_event_id)
+                payload = {
+                    "investigation_id": str(req.investigation_id),
+                    "incident_id": str(req.incident_id),
+                    "status": "failed",
+                    "error_message": str(exc)[:2000],
+                    "result": None,
+                }
+                await self._emit_completed(req, payload, causation_id, kafka_event_id, "failed")
+                m.AI_FAILED.labels(service=m.SERVICE, environment=_ENV, status="failed").inc()
+                m.AI_DURATION.labels(service=m.SERVICE, environment=_ENV, status="failed").observe(time.perf_counter() - started)
+                log.error(
+                    "investigation_failed",
+                    extra={"investigation_id": str(req.investigation_id), "incident_id": str(req.incident_id)},
+                    exc_info=True,
+                )
+                return {"id": str(req.investigation_id), "status": "failed", "error": str(exc)}
 
     async def request_for_incident(self, incident_id: UUID) -> dict:
         bundle = store.load_incident_bundle(self.conn, incident_id)

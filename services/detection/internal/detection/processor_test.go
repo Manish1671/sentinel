@@ -4,18 +4,32 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/config"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/database"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/events"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/kafka"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/rules"
 )
+
+func TestMain(m *testing.M) {
+	shutdown, err := telemetry.Init(context.Background(), telemetry.Config{ServiceName: "sentinel-detection", Environment: "test"})
+	if err != nil {
+		panic(err)
+	}
+	code := m.Run()
+	_ = shutdown(context.Background())
+	os.Exit(code)
+}
 
 func TestPoisonCommitsWithoutPanic(t *testing.T) {
 	p := NewProcessor(config.Config{}, slog.New(slog.NewTextHandler(os.Stdout, nil)), nil, rules.NewEngine(config.Rules{}, rules.NewWindows()), stubPub{})
@@ -119,4 +133,25 @@ type countingPub struct{ n int }
 func (c *countingPub) Publish(context.Context, kafka.Message) error {
 	c.n++
 	return nil
+}
+
+func TestRecordMetricsAndRules(t *testing.T) {
+	p := NewProcessor(config.Config{}, slog.New(slog.NewTextHandler(os.Stdout, nil)), nil, rules.NewEngine(config.Rules{}, rules.NewWindows()), stubPub{})
+	ctx := context.Background()
+	p.recordMetrics(ctx, HandleResult{Outcome: "created", NewPublish: 2}, 15*time.Millisecond)
+	p.recordMetrics(ctx, HandleResult{Outcome: "suppressed"}, 5*time.Millisecond)
+	telemetry.Count(ctx, telemetry.DetectionRules, "rule", "high_latency", "severity", "high")
+	rec := httptest.NewRecorder()
+	telemetry.MetricsHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	body := rec.Body.String()
+	for _, name := range []string{
+		"sentinel_detection_events_processed",
+		"sentinel_detection_alerts_created",
+		"sentinel_detection_alerts_suppressed",
+		"sentinel_detection_rule_triggers",
+	} {
+		if !strings.Contains(body, name) {
+			t.Fatalf("missing %s\n%s", name, body)
+		}
+	}
 }

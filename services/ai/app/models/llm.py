@@ -16,6 +16,7 @@ from app.models.contracts import (
     RecommendationOut,
     ToolUsage,
 )
+from app.observability import metrics as m
 from app.prompts.investigator import SYSTEM_PROMPT, user_prompt
 
 
@@ -31,6 +32,7 @@ class HeuristicProvider:
         self.settings = settings
 
     def complete(self, context: str, investigation_id: UUID, incident_id: UUID, service_id: UUID) -> dict[str, Any]:
+        m.AI_MODEL_REQUESTS.labels(service=m.SERVICE, environment=self.settings.environment, provider="heuristic").inc()
         lower = context.lower()
         db = "db_connection" in lower or "saturation" in lower or "connection" in lower
         latency = "latency" in lower or "high_latency" in lower
@@ -124,6 +126,8 @@ class OpenAICompatibleProvider:
         self.settings = settings
 
     def complete(self, context: str, investigation_id: UUID, incident_id: UUID, service_id: UUID) -> dict[str, Any]:
+        env = self.settings.environment
+        m.AI_MODEL_REQUESTS.labels(service=m.SERVICE, environment=env, provider="openai").inc()
         body = {
             "model": self.settings.ai_model,
             "temperature": 0.1,
@@ -137,10 +141,21 @@ class OpenAICompatibleProvider:
         }
         headers = {"Authorization": f"Bearer {self.settings.ai_api_key}", "Content-Type": "application/json"}
         url = self.settings.ai_base_url.rstrip("/") + "/chat/completions"
-        with httpx.Client(timeout=self.settings.llm_timeout_seconds) as client:
-            resp = client.post(url, headers=headers, json=body)
-            resp.raise_for_status()
-            data = resp.json()
+        try:
+            with httpx.Client(timeout=self.settings.llm_timeout_seconds) as client:
+                resp = client.post(url, headers=headers, json=body)
+                resp.raise_for_status()
+                data = resp.json()
+        except Exception:
+            m.AI_MODEL_FAILURES.labels(service=m.SERVICE, environment=env, provider="openai").inc()
+            raise
+        usage = data.get("usage") or {}
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        if isinstance(prompt_tokens, int) and prompt_tokens > 0:
+            m.AI_TOKENS.labels(service=m.SERVICE, environment=env, kind="prompt").inc(prompt_tokens)
+        if isinstance(completion_tokens, int) and completion_tokens > 0:
+            m.AI_TOKENS.labels(service=m.SERVICE, environment=env, kind="completion").inc(completion_tokens)
         content = data["choices"][0]["message"]["content"]
         return extract_json(content)
 

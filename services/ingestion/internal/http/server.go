@@ -11,6 +11,7 @@ import (
 	"github.com/sentinel-dev/sentinel/services/ingestion/internal/apierr"
 	"github.com/sentinel-dev/sentinel/services/ingestion/internal/config"
 	"github.com/sentinel-dev/sentinel/services/ingestion/internal/ingest"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 type readiness interface {
@@ -55,6 +56,7 @@ func (s *Server) routes() http.Handler {
 	h = timeout(s.cfg.RequestTimeout, h)
 	h = accessLog(s.log, h)
 	h = requestID(h)
+	h = telemetry.WrapHTTP(h)
 	return h
 }
 

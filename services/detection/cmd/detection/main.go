@@ -18,6 +18,7 @@ import (
 	"github.com/sentinel-dev/sentinel/services/detection/internal/kafka"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/observability"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/rules"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 func main() {
@@ -32,6 +33,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	telShutdown, err := telemetry.Init(context.Background(), telemetry.FromEnv("sentinel-detection"))
+	if err != nil {
+		return fmt.Errorf("telemetry: %w", err)
+	}
+	defer func() { _ = telShutdown(context.Background()) }()
 	log := observability.NewLogger(cfg.LogLevel)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -110,16 +116,24 @@ func consumeLoop(ctx context.Context, log *slog.Logger, consumer *kafka.Consumer
 			}
 			return err
 		}
-		res, err := proc.Handle(ctx, msg.Value, msg.Topic, msg.Partition, msg.Offset)
+		msgCtx := consumer.Context(ctx, msg)
+		start := time.Now()
+		err = telemetry.KafkaConsume(msgCtx, msg.Topic, func(ctx context.Context) error {
+			res, err := proc.Handle(ctx, msg.Value, msg.Topic, msg.Partition, msg.Offset)
+			if err != nil {
+				return err
+			}
+			if res.Commit {
+				return consumer.Commit(ctx, msg)
+			}
+			return nil
+		})
+		telemetry.Observe(msgCtx, telemetry.KafkaDuration, time.Since(start).Seconds(), "topic", msg.Topic, "operation", "consume")
+		telemetry.Gauge(msgCtx, telemetry.KafkaLag, float64(consumer.Lag()), "topic", msg.Topic)
 		if err != nil {
 			log.Error("process_failed", "error", err.Error(), "kafka_topic", msg.Topic, "partition", msg.Partition, "offset", msg.Offset)
 			time.Sleep(time.Second)
 			continue
-		}
-		if res.Commit {
-			if err := consumer.Commit(ctx, msg); err != nil {
-				return err
-			}
 		}
 	}
 }

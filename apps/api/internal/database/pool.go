@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/sentinel-dev/sentinel/apps/api/internal/config"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 type DB struct {
@@ -42,7 +43,13 @@ func (d *DB) Ping(ctx context.Context) error {
 	if d == nil || d.Pool == nil {
 		return fmt.Errorf("postgres is not configured")
 	}
-	return d.Pool.Ping(ctx)
+	err := telemetry.DBOp(ctx, "ping", func(ctx context.Context) error {
+		return d.Pool.Ping(ctx)
+	})
+	if d.Pool != nil {
+		telemetry.RecordPool(ctx, float64(d.Pool.Stat().AcquiredConns()))
+	}
+	return err
 }
 
 func (d *DB) Close() {

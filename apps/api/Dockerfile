@@ -2,9 +2,11 @@
 
 FROM golang:1.23-alpine AS build
 WORKDIR /src
-COPY apps/api/go.mod apps/api/go.sum ./
+COPY packages/telemetry /src/packages/telemetry
+COPY apps/api/go.mod apps/api/go.sum /src/apps/api/
+WORKDIR /src/apps/api
 RUN go mod download
-COPY apps/api/ ./
+COPY apps/api /src/apps/api
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/api ./cmd/api
 
 FROM alpine:3.20

@@ -1,0 +1,133 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Investigations completed / failed",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(sentinel_ai_investigations_completed_total[5m]))",
+          "legendFormat": "completed"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(sentinel_ai_investigations_failed_total[5m]))",
+          "legendFormat": "failed"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(rate(sentinel_ai_investigations_started_total[5m]))",
+          "legendFormat": "started"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Investigation latency",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(sentinel_ai_investigation_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "AI tool calls",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (tool, status) (rate(sentinel_ai_tool_calls_total[5m]))",
+          "legendFormat": "{{tool}} {{status}}"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (tool) (rate(sentinel_ai_tool_failures_total[5m]))",
+          "legendFormat": "fail {{tool}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Remediation outcomes",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(sentinel_remediation_succeeded_total[5m]))",
+          "legendFormat": "succeeded"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(sentinel_remediation_failed_total[5m]))",
+          "legendFormat": "failed"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(rate(sentinel_remediation_started_total[5m]))",
+          "legendFormat": "started"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Verification outcomes",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(sentinel_remediation_verification_passed_total[5m]))",
+          "legendFormat": "passed"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(sentinel_remediation_verification_failed_total[5m]))",
+          "legendFormat": "failed"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Remediation execution latency",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(sentinel_remediation_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["sentinel", "ai", "remediation"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "AI & Remediation",
+  "uid": "sentinel-ai-remediation",
+  "version": 1
+}

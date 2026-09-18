@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/approvals"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/config"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/database"
@@ -142,6 +143,7 @@ func (p *Processor) CreateFromRecommendation(ctx context.Context, rec database.R
 	if err != nil {
 		return database.Remediation{}, err
 	}
+	telemetry.Count(ctx, telemetry.RemRequested, "action_type", action, "status", "pending_approval")
 	_ = p.store.AppendEvent(ctx, rec.IncidentID, "recommendation_added", requestedBy, map[string]any{
 		"source":          events.Source,
 		"audit_event":     "remediation.created",
@@ -234,9 +236,12 @@ func (p *Processor) decide(ctx context.Context, remID uuid.UUID, actor approvals
 		return database.Remediation{}, err
 	}
 	if decision == "approved" {
+		telemetry.Count(ctx, telemetry.RemApproved, "action_type", row.ActionType, "status", "approved")
 		if err := p.publishRequested(ctx, updated); err != nil {
 			return updated, err
 		}
+	} else {
+		telemetry.Count(ctx, telemetry.RemRejected, "action_type", row.ActionType, "status", "rejected")
 	}
 	return updated, nil
 }
@@ -276,6 +281,12 @@ func (p *Processor) publishRequested(ctx context.Context, row database.Remediati
 }
 
 func (p *Processor) executeRequested(ctx context.Context, env events.Envelope) error {
+	start := time.Now()
+	ctx, span := telemetry.Start(ctx, "sentinel.remediation.execute")
+	defer func() {
+		telemetry.Observe(ctx, telemetry.RemDuration, time.Since(start).Seconds(), "operation", "execute")
+		telemetry.End(span, nil)
+	}()
 	remID, err := events.UUIDField(env.Payload, "remediation_id")
 	if err != nil {
 		return p.store.RecordProcessed(ctx, env.EventID, env.EventType, nil, nil, "ignored", true)
@@ -311,6 +322,7 @@ func (p *Processor) executeRequested(ctx context.Context, env events.Envelope) e
 		return err
 	}
 	if claimed {
+		telemetry.Count(ctx, telemetry.RemStarted, "action_type", row.ActionType, "status", "running")
 		if err := p.onStartIncident(ctx, row); err != nil {
 			return err
 		}
@@ -373,12 +385,15 @@ func (p *Processor) executeRequested(ctx context.Context, env events.Envelope) e
 		return err
 	}
 	out := verification.Evaluate(row.ActionType, st)
+	_, vspan := telemetry.Start(ctx, "sentinel.remediation.verify")
+	vspan.End()
 	details := row.VerificationDetails
 	if details == nil {
 		details = map[string]any{}
 	}
 	details["verification"] = out.Checks
 	if !out.Passed {
+		telemetry.Count(ctx, telemetry.RemVerifyFailed, "action_type", row.ActionType, "status", "failed")
 		_ = p.store.MarkFailed(ctx, remID, out.Summary, details)
 		_ = p.returnIncidentActive(ctx, row.IncidentID)
 		failed, _ := p.store.GetRemediation(ctx, remID)
@@ -400,6 +415,7 @@ func (p *Processor) executeRequested(ctx context.Context, env events.Envelope) e
 	if err := p.store.MarkSucceeded(ctx, remID, out.Summary, details); err != nil {
 		return err
 	}
+	telemetry.Count(ctx, telemetry.RemVerifyPassed, "action_type", row.ActionType, "status", "passed")
 	_, _ = p.store.TransitionIncident(ctx, row.IncidentID, []string{"verifying", "remediating"}, "resolved")
 	_ = p.store.AppendEvent(ctx, row.IncidentID, "remediation_completed", nil, map[string]any{
 		"source":         events.Source,
@@ -484,6 +500,7 @@ func (p *Processor) succeed(ctx context.Context, env events.Envelope, row databa
 			return err
 		}
 	}
+	telemetry.Count(ctx, telemetry.RemSucceeded, "action_type", row.ActionType, "status", "succeeded")
 	return p.store.RecordProcessed(ctx, env.EventID, env.EventType, &row.ID, nil, "succeeded", true)
 }
 
@@ -507,6 +524,7 @@ func (p *Processor) fail(ctx context.Context, env events.Envelope, row database.
 			return err
 		}
 	}
+	telemetry.Count(ctx, telemetry.RemFailed, "action_type", row.ActionType, "status", "failed")
 	return p.store.RecordProcessed(ctx, env.EventID, env.EventType, &row.ID, nil, "failed", true)
 }
 

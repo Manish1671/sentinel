@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import time
 from pathlib import Path
 
 import psycopg
@@ -9,13 +10,23 @@ from psycopg import ClientCursor
 from psycopg.rows import dict_row
 from psycopg.types.json import Json
 
+from app.observability import metrics as m
+
 
 def connect(database_url: str) -> psycopg.Connection:
     return psycopg.connect(database_url, row_factory=dict_row, autocommit=True)
 
 
 def ping(conn: psycopg.Connection) -> None:
-    conn.execute("SELECT 1")
+    env = os.getenv("ENVIRONMENT", "development")
+    start = time.perf_counter()
+    try:
+        conn.execute("SELECT 1")
+    except Exception:
+        m.DB_ERRORS.labels(service=m.SERVICE, environment=env, operation="ping").inc()
+        raise
+    finally:
+        m.DB_DURATION.labels(service=m.SERVICE, environment=env, operation="ping").observe(time.perf_counter() - start)
 
 
 def migrate(database_url: str, migrations_dir: str) -> None:

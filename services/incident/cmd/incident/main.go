@@ -17,6 +17,7 @@ import (
 	"github.com/sentinel-dev/sentinel/services/incident/internal/incidents"
 	"github.com/sentinel-dev/sentinel/services/incident/internal/kafka"
 	"github.com/sentinel-dev/sentinel/services/incident/internal/observability"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 func main() {
@@ -31,6 +32,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	telShutdown, err := telemetry.Init(context.Background(), telemetry.FromEnv("sentinel-incident"))
+	if err != nil {
+		return fmt.Errorf("telemetry: %w", err)
+	}
+	defer func() { _ = telShutdown(context.Background()) }()
 	log := observability.NewLogger(cfg.LogLevel)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -108,9 +114,13 @@ func consumeLoop(ctx context.Context, log *slog.Logger, consumer *kafka.Consumer
 			}
 			return err
 		}
+		msgCtx := consumer.Context(ctx, msg)
+		start := time.Now()
+		var loopErr error
 		for {
-			res, err := proc.Handle(ctx, msg.Value, msg.Topic, msg.Partition, msg.Offset)
+			res, err := proc.Handle(msgCtx, msg.Value, msg.Topic, msg.Partition, msg.Offset)
 			if err != nil {
+				loopErr = err
 				log.Error("process_failed", "error", err.Error(), "kafka_topic", msg.Topic, "partition", msg.Partition, "offset", msg.Offset)
 				select {
 				case <-ctx.Done():
@@ -120,11 +130,18 @@ func consumeLoop(ctx context.Context, log *slog.Logger, consumer *kafka.Consumer
 				continue
 			}
 			if res.Commit {
-				if err := consumer.Commit(ctx, msg); err != nil {
+				if err := consumer.Commit(msgCtx, msg); err != nil {
 					return err
 				}
 			}
 			break
 		}
+		if loopErr != nil {
+			telemetry.Count(msgCtx, telemetry.KafkaFailures, "operation", "consume", "topic", msg.Topic)
+		} else {
+			telemetry.Count(msgCtx, telemetry.KafkaConsumed, "topic", msg.Topic, "operation", "consume")
+		}
+		telemetry.Observe(msgCtx, telemetry.KafkaDuration, time.Since(start).Seconds(), "topic", msg.Topic, "operation", "consume")
+		telemetry.Gauge(msgCtx, telemetry.KafkaLag, float64(consumer.Lag()), "topic", msg.Topic)
 	}
 }

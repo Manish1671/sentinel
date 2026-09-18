@@ -2,9 +2,11 @@
 
 FROM golang:1.23-alpine AS build
 WORKDIR /src
-COPY services/detection/go.mod services/detection/go.sum ./
+COPY packages/telemetry /src/packages/telemetry
+COPY services/detection/go.mod services/detection/go.sum /src/services/detection/
+WORKDIR /src/services/detection
 RUN go mod download
-COPY services/detection ./
+COPY services/detection /src/services/detection
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/detection ./cmd/detection
 
 FROM alpine:3.20

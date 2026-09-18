@@ -2,9 +2,11 @@
 
 FROM golang:1.23-alpine AS build
 WORKDIR /src
-COPY services/ingestion/go.mod services/ingestion/go.sum ./
+COPY packages/telemetry /src/packages/telemetry
+COPY services/ingestion/go.mod services/ingestion/go.sum /src/services/ingestion/
+WORKDIR /src/services/ingestion
 RUN go mod download
-COPY services/ingestion ./
+COPY services/ingestion /src/services/ingestion
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/ingestion ./cmd/ingestion
 
 FROM alpine:3.20

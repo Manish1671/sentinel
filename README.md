@@ -52,7 +52,7 @@ See [docs/architecture/README.md](docs/architecture/README.md) for the full arch
 ```
 apps/             Operator UI and primary API
 services/         Domain services (ingestion, detection, incident, remediation, AI)
-packages/         Shared contracts, config, and utilities
+packages/         Shared contracts, config, telemetry, and utilities
 infrastructure/   Docker, Kubernetes, Terraform, AWS
 observability/    Prometheus, Grafana, OpenTelemetry
 database/         Migrations and seeds
@@ -69,17 +69,17 @@ scripts/          Local and operational scripts
 5. **Phase 4 — Detection engine**
 6. **Phase 5 — Incident correlation**
 7. **Phase 6 — AI investigation with restricted tools**
-8. **Phase 7 — Recommendation & remediation** (current)
+8. **Phase 7 — Recommendation & remediation**
 9. **Phase 8 — Operator UI**
-10. **Phase 9 — Observability, hardening, and Kubernetes/AWS delivery**
+10. **Phase 9 — Observability** (current)
+11. **Phase 10 — Kubernetes, Terraform & AWS**
+12. **Phase 11 — Failure injection, evaluation & final polish**
 
 ## Current project status
 
-**Phase 7 — Recommendation & Remediation**
+**Phase 9 — Observability**
 
-The repository includes architecture docs, PostgreSQL schema/seeds, a Go control-plane API, ingestion, detection, incident correlation, a Python AI investigation service, and a Go remediation service that approves, simulates, and verifies allowlisted actions.
-
-It does **not** yet include the operator UI, Kubernetes/AWS executors, or the observability stack.
+The repository includes a Go control-plane API, ingestion, detection, incident correlation, Python AI investigation, Go remediation, a Next.js operator console, and local OpenTelemetry / Prometheus / Grafana (Compose profile `observability`). Kubernetes/AWS delivery remains Phase 10.
 
 ## Local infrastructure
 
@@ -90,10 +90,19 @@ docker compose up -d
 
 This starts PostgreSQL, Redis, Kafka, ingestion (`:8090`), detection (`:8091`), incident (`:8092`), AI (`:8000`), and remediation (`:8093`).
 
+Optional observability stack (OTel `:4317`/`:4318`, Prometheus `:9090`, Grafana `:3002`):
+
+```bash
+docker compose --profile observability up -d
+```
+
+Run `apps/api` (`:8080`) and `apps/web` (`:3000`) on the host. See [observability/README.md](observability/README.md).
+
 ## Documentation
 
 - [Development progress](docs/progress.md)
 - [Architecture](docs/architecture/README.md)
+- [Observability](docs/architecture/observability.md)
 - [Domain model](docs/architecture/domain.md)
 - [Kafka events](docs/events/README.md)
 - [Data stores](docs/architecture/data.md)

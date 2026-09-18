@@ -86,7 +86,7 @@ telemetry.events
 system.health is a cross-cutting health signal topic
 ```
 
-See [docs/events/README.md](../events/README.md). Idempotency: [idempotency.md](./idempotency.md).
+See [docs/events/README.md](../events/README.md). Idempotency: [idempotency.md](./idempotency.md). Observability: [observability.md](./observability.md).
 
 ## 7. AI investigation flow
 
@@ -103,8 +103,10 @@ Developers run infrastructure with Docker Compose:
 - PostgreSQL on `:5432`
 - Redis on `:6379`
 - Kafka (KRaft, single node) on `:9092`
+- Ingestion, detection, incident, AI, and remediation as Compose services
+- Optional profile `observability`: OTel Collector (`:4317`/`:4318`), Prometheus (`:9090`), Grafana (`:3002`)
 
-Apps and services will run on the host in early phases (`web :3000`, `api :8080`, `ai :8000`). Compose will gain application services only when images exist.
+`apps/api` (`:8080`) and `apps/web` (`:3000`) typically run on the host.
 
 ## 10. Eventual production architecture
 

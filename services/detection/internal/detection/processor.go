@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/config"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/database"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/events"
@@ -41,6 +42,8 @@ type HandleResult struct {
 
 func (p *Processor) Handle(ctx context.Context, raw []byte, topic string, partition int, offset int64) (HandleResult, error) {
 	start := time.Now()
+	ctx, span := telemetry.Start(ctx, "sentinel.detection.evaluate")
+	defer span.End()
 	env, err := events.Parse(raw)
 	if err != nil {
 		p.log.Error("poison_message",
@@ -49,7 +52,9 @@ func (p *Processor) Handle(ctx context.Context, raw []byte, topic string, partit
 			"partition", partition,
 			"offset", offset,
 		)
-		return HandleResult{Commit: true, Outcome: "poison"}, nil
+		res := HandleResult{Commit: true, Outcome: "poison"}
+		p.recordMetrics(ctx, res, time.Since(start))
+		return res, nil
 	}
 
 	res := HandleResult{EventID: env.EventID, EventType: env.EventType, Commit: true}
@@ -138,6 +143,7 @@ func (p *Processor) Handle(ctx context.Context, raw []byte, topic string, partit
 			"outcome", res.Outcome,
 			"duration_ms", time.Since(start).Milliseconds(),
 		)
+		p.recordMetrics(ctx, res, time.Since(start))
 		return res, nil
 	}
 
@@ -163,6 +169,7 @@ func (p *Processor) Handle(ctx context.Context, raw []byte, topic string, partit
 			"severity", hit.Severity,
 			"new", isNew,
 		)
+		telemetry.Count(ctx, telemetry.DetectionRules, "rule", hit.DetectorID, "severity", hit.Severity)
 	}
 
 	outcome := "suppressed"
@@ -184,7 +191,8 @@ func (p *Processor) Handle(ctx context.Context, raw []byte, topic string, partit
 	res.Outcome = outcome
 	res.AlertIDs = all
 	res.NewPublish = len(created)
-	p.log.Info("detection_complete",
+	p.recordMetrics(ctx, res, time.Since(start))
+	p.log.InfoContext(ctx, "detection_complete",
 		"event_id", env.EventID,
 		"event_type", env.EventType,
 		"service_id", svcID,
@@ -270,4 +278,15 @@ func (p *Processor) publishAlerts(ctx context.Context, src events.Envelope, ids 
 		)
 	}
 	return nil
+}
+
+func (p *Processor) recordMetrics(ctx context.Context, res HandleResult, d time.Duration) {
+	telemetry.Count(ctx, telemetry.DetectionEvents, "outcome", res.Outcome)
+	telemetry.Observe(ctx, telemetry.DetectionDuration, d.Seconds(), "outcome", res.Outcome)
+	switch res.Outcome {
+	case "created":
+		telemetry.Add(ctx, telemetry.DetectionCreated, int64(res.NewPublish), "status", "created")
+	case "suppressed", "duplicate":
+		telemetry.Count(ctx, telemetry.DetectionSuppressed, "outcome", res.Outcome)
+	}
 }

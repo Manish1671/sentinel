@@ -17,6 +17,7 @@ import (
 	"github.com/sentinel-dev/sentinel/apps/api/internal/incidents"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/observability"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/services"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 func main() {
@@ -31,8 +32,13 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	log := observability.NewLogger(cfg.LogLevel)
 	ctx := context.Background()
+	telShutdown, err := telemetry.Init(ctx, telemetry.FromEnv("sentinel-api"))
+	if err != nil {
+		return fmt.Errorf("telemetry: %w", err)
+	}
+	defer func() { _ = telShutdown(context.Background()) }()
+	log := observability.NewLogger(cfg.LogLevel)
 
 	db, err := database.Connect(ctx, cfg)
 	if err != nil {

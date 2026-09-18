@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 	"github.com/sentinel-dev/sentinel/services/incident/internal/config"
 	"github.com/sentinel-dev/sentinel/services/incident/internal/correlation"
 	"github.com/sentinel-dev/sentinel/services/incident/internal/database"
@@ -41,8 +42,30 @@ type HandleResult struct {
 	Updated    bool
 }
 
-func (p *Processor) Handle(ctx context.Context, raw []byte, topic string, partition int, offset int64) (HandleResult, error) {
+func (p *Processor) Handle(ctx context.Context, raw []byte, topic string, partition int, offset int64) (res HandleResult, err error) {
 	start := time.Now()
+	ctx, span := telemetry.Start(ctx, "sentinel.incident.correlate")
+	defer func() {
+		telemetry.Observe(ctx, telemetry.IncidentDuration, time.Since(start).Seconds(), "outcome", res.Outcome)
+		if res.Outcome != "" {
+			telemetry.Count(ctx, telemetry.IncidentCorrelated, "outcome", res.Outcome)
+		}
+		if res.Created {
+			telemetry.Count(ctx, telemetry.IncidentCreated, "status", "created")
+		}
+		if res.Updated {
+			telemetry.Count(ctx, telemetry.IncidentAttached, "status", "attached")
+		}
+		if err != nil {
+			telemetry.Count(ctx, telemetry.IncidentFailures, "status", "error")
+		}
+		if p.store != nil {
+			if n, e := p.store.CountActive(ctx); e == nil {
+				telemetry.Gauge(ctx, telemetry.IncidentActive, float64(n))
+			}
+		}
+		telemetry.End(span, err)
+	}()
 	env, err := events.Parse(raw)
 	if err != nil {
 		p.log.Error("poison_message",
@@ -54,7 +77,7 @@ func (p *Processor) Handle(ctx context.Context, raw []byte, topic string, partit
 		return HandleResult{Commit: true, Outcome: "poison"}, nil
 	}
 
-	res := HandleResult{EventID: env.EventID, Commit: true}
+	res = HandleResult{EventID: env.EventID, Commit: true}
 	p.log.Info("alert_received",
 		"event_id", env.EventID,
 		"event_type", env.EventType,

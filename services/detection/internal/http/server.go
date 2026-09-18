@@ -10,6 +10,7 @@ import (
 
 	"github.com/sentinel-dev/sentinel/services/detection/internal/config"
 	"github.com/sentinel-dev/sentinel/services/detection/internal/rules"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 type readiness interface {
@@ -48,7 +49,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("GET /health", s.health)
 	mux.HandleFunc("GET /ready", s.ready)
 	mux.HandleFunc("GET /api/v1/rules", s.rules)
-	return mux
+	return telemetry.WrapHTTP(mux)
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"sync"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/approvals"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/config"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/database"
@@ -20,6 +23,16 @@ import (
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/executor"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/kafka"
 )
+
+func TestMain(m *testing.M) {
+	shutdown, err := telemetry.Init(context.Background(), telemetry.Config{ServiceName: "sentinel-remediation", Environment: "test"})
+	if err != nil {
+		panic(err)
+	}
+	code := m.Run()
+	_ = shutdown(context.Background())
+	os.Exit(code)
+}
 
 type memPub struct {
 	mu   sync.Mutex
@@ -261,4 +274,28 @@ func requestedEnvelope(remID, incidentID, recID, serviceID uuid.UUID) events.Env
 		"parameters":        map[string]any{"to_version": "1.17.4"},
 		"approval_id":       uuid.New().String(),
 	})
+}
+
+func TestRemediationMetrics(t *testing.T) {
+	ctx := context.Background()
+	telemetry.Count(ctx, telemetry.RemRequested, "action_type", "rollback_deployment", "status", "pending_approval")
+	telemetry.Count(ctx, telemetry.RemApproved, "action_type", "rollback_deployment", "status", "approved")
+	telemetry.Count(ctx, telemetry.RemStarted, "action_type", "rollback_deployment", "status", "running")
+	telemetry.Count(ctx, telemetry.RemSucceeded, "action_type", "rollback_deployment", "status", "succeeded")
+	telemetry.Count(ctx, telemetry.RemVerifyPassed, "action_type", "rollback_deployment", "status", "passed")
+	telemetry.Observe(ctx, telemetry.RemDuration, 0.05, "operation", "execute")
+	rec := httptest.NewRecorder()
+	telemetry.MetricsHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	body := rec.Body.String()
+	for _, name := range []string{
+		"sentinel_remediation_requested",
+		"sentinel_remediation_approved",
+		"sentinel_remediation_started",
+		"sentinel_remediation_succeeded",
+		"sentinel_remediation_verification_passed",
+	} {
+		if !strings.Contains(body, name) {
+			t.Fatalf("missing %s\n%s", name, body)
+		}
+	}
 }

@@ -1,0 +1,108 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Telemetry events processed",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (rate(sentinel_detection_events_processed_total[5m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Alerts created vs suppressed",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(sentinel_detection_alerts_created_total[5m]))",
+          "legendFormat": "created"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(sentinel_detection_alerts_suppressed_total[5m]))",
+          "legendFormat": "suppressed"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Incidents created / alerts attached",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(sentinel_incident_incidents_created_total[5m]))",
+          "legendFormat": "created"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(sentinel_incident_alerts_attached_total[5m]))",
+          "legendFormat": "attached"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(rate(sentinel_incident_alerts_correlated_total[5m]))",
+          "legendFormat": "correlated"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Detection and correlation latency",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(sentinel_detection_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "detection p95"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum(rate(sentinel_incident_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "correlation p95"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Rule triggers",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (rule, severity) (rate(sentinel_detection_rule_triggers_total[5m]))",
+          "legendFormat": "{{rule}} {{severity}}"
+        }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["sentinel", "detection"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "title": "Detection & Incidents",
+  "uid": "sentinel-detection",
+  "version": 1
+}

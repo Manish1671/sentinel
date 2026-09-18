@@ -14,6 +14,7 @@ import (
 	"github.com/sentinel-dev/sentinel/services/ingestion/internal/ingest"
 	"github.com/sentinel-dev/sentinel/services/ingestion/internal/kafka"
 	"github.com/sentinel-dev/sentinel/services/ingestion/internal/observability"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 func main() {
@@ -28,6 +29,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	telShutdown, err := telemetry.Init(context.Background(), telemetry.FromEnv("sentinel-ingestion"))
+	if err != nil {
+		return fmt.Errorf("telemetry: %w", err)
+	}
+	defer func() { _ = telShutdown(context.Background()) }()
 	log := observability.NewLogger(cfg.LogLevel)
 	producer := kafka.NewProducer(cfg)
 	defer func() { _ = producer.Close() }()

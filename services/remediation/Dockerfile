@@ -2,9 +2,11 @@
 
 FROM golang:1.23-alpine AS build
 WORKDIR /src
-COPY services/remediation/go.mod services/remediation/go.sum ./
+COPY packages/telemetry /src/packages/telemetry
+COPY services/remediation/go.mod services/remediation/go.sum /src/services/remediation/
+WORKDIR /src/services/remediation
 RUN go mod download
-COPY services/remediation ./
+COPY services/remediation /src/services/remediation
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/remediation ./cmd/remediation
 
 FROM alpine:3.20

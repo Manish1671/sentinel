@@ -19,6 +19,7 @@ import (
 	"github.com/sentinel-dev/sentinel/apps/api/internal/ops"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/paging"
 	"github.com/sentinel-dev/sentinel/apps/api/internal/services"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 type Server struct {
@@ -114,6 +115,7 @@ func (s *Server) routes() http.Handler {
 	h = middleware.Timeout(s.cfg.RequestTimeout, h)
 	h = middleware.AccessLog(s.log, h)
 	h = middleware.RequestID(h)
+	h = telemetry.WrapHTTP(h)
 	return h
 }
 

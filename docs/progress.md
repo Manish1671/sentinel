@@ -115,7 +115,14 @@ deferred because `apps/api` has no event stream. Observability and
 Kubernetes/AWS are later phases.
 
 ## Phase 9 — Observability
-Status: ⏳ Not Started
+Status: ✅ Complete
+
+Summary:
+Instrumented the Go API, ingestion, detection, incident, and remediation
+services plus the Python AI service with structured JSON logs, Prometheus
+`/metrics`, and OpenTelemetry traces (W3C HTTP and Kafka headers). Local
+Collector, Prometheus, and Grafana run under Compose profile `observability`.
+Kubernetes/AWS remain Phase 10.
 
 ## Phase 10 — Kubernetes, Terraform & AWS
 Status: ⏳ Not Started

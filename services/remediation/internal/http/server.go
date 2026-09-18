@@ -19,6 +19,7 @@ import (
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/database"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/executor"
 	"github.com/sentinel-dev/sentinel/services/remediation/internal/remediation"
+	"github.com/sentinel-dev/sentinel/packages/telemetry"
 )
 
 type readiness interface {
@@ -61,7 +62,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/v1/remediations/{id}/reject", s.reject)
 	mux.HandleFunc("GET /api/v1/incidents/{id}/remediations", s.listByIncident)
 	mux.HandleFunc("GET /api/v1/incidents/{id}/timeline", s.timeline)
-	return mux
+	return telemetry.WrapHTTP(mux)
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
