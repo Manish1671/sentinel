@@ -258,6 +258,7 @@ func (s *Server) listDeployments(w http.ResponseWriter, r *http.Request) {
 			"id":           item.ID,
 			"service_id":   item.ServiceID,
 			"service_slug": item.ServiceSlug,
+			"environment":  item.Environment,
 			"version":      item.Version,
 			"git_sha":      item.GitSHA,
 			"status":       item.Status,
@@ -318,6 +319,7 @@ func investigationDTO(item ops.Investigation, includeEvidence bool) map[string]a
 	dto := map[string]any{
 		"id":                     item.ID,
 		"incident_id":            item.IncidentID,
+		"incident_reference":     item.IncidentReference,
 		"status":                 item.Status,
 		"requested_by_user_id":   item.RequestedByUserID,
 		"model_name":             item.ModelName,
@@ -382,8 +384,10 @@ func remediationDTO(item ops.Remediation) map[string]any {
 	return map[string]any{
 		"id":                   item.ID,
 		"incident_id":          item.IncidentID,
+		"incident_reference":   item.IncidentReference,
 		"recommendation_id":    item.RecommendationID,
 		"service_id":           item.ServiceID,
+		"service_slug":         item.ServiceSlug,
 		"status":               item.Status,
 		"action_type":          item.ActionType,
 		"parameters":           rawJSON(item.Parameters),

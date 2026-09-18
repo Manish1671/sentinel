@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Sheet>
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onOpenCommand={() => setCommandOpen(true)} onOpenMobileNav={() => setMobileNavOpen(true)} />
-        <main id="main-content" className="flex-1 overflow-x-hidden px-3 py-6 md:px-8 md:py-7">
+        <main id="main-content" className="flex-1 overflow-x-hidden px-3 py-5 md:px-8 md:py-6">
           <div className="mx-auto w-full max-w-[1120px]">{children}</div>
         </main>
       </div>

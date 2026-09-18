@@ -102,7 +102,25 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (ServiceRecord, []Deplo
 		}
 		return ServiceRecord{}, nil, err
 	}
-	deps, err := s.repo.recentDeployments(ctx, id, 5)
+	deps, err := s.repo.recentDeployments(ctx, rec.ID, 5)
+	if err != nil {
+		return ServiceRecord{}, nil, err
+	}
+	return rec, deps, nil
+}
+
+func (s *Service) Resolve(ctx context.Context, idOrSlug string) (ServiceRecord, []Deployment, error) {
+	if id, err := uuid.Parse(idOrSlug); err == nil {
+		return s.Get(ctx, id)
+	}
+	rec, err := s.repo.getBySlug(ctx, idOrSlug)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return ServiceRecord{}, nil, apierr.NotFound("Service not found.")
+		}
+		return ServiceRecord{}, nil, err
+	}
+	deps, err := s.repo.recentDeployments(ctx, rec.ID, 5)
 	if err != nil {
 		return ServiceRecord{}, nil, err
 	}
@@ -140,14 +158,21 @@ func (r *Repository) list(ctx context.Context, filter ListFilter, cursorTime tim
 }
 
 func (r *Repository) get(ctx context.Context, id uuid.UUID) (ServiceRecord, error) {
+	return r.getWhere(ctx, "s.id = $1", id)
+}
+
+func (r *Repository) getBySlug(ctx context.Context, slug string) (ServiceRecord, error) {
+	return r.getWhere(ctx, "s.slug = $1", slug)
+}
+
+func (r *Repository) getWhere(ctx context.Context, where string, arg any) (ServiceRecord, error) {
 	var rec ServiceRecord
 	err := r.pool.QueryRow(ctx, `
 		SELECT s.id, s.slug, s.name, s.environment::text, s.description, s.owner_user_id, s.health_status::text,
 		       (SELECT d.version FROM deployments d WHERE d.service_id = s.id ORDER BY d.started_at DESC LIMIT 1),
 		       (SELECT COUNT(*) FROM incidents i WHERE i.service_id = s.id AND i.status::text NOT IN ('resolved', 'closed'))
 		FROM services s
-		WHERE s.id = $1
-	`, id).Scan(&rec.ID, &rec.Slug, &rec.Name, &rec.Environment, &rec.Description, &rec.OwnerUserID, &rec.HealthStatus, &rec.CurrentVersion, &rec.ActiveIncidentCount)
+		WHERE `+where, arg).Scan(&rec.ID, &rec.Slug, &rec.Name, &rec.Environment, &rec.Description, &rec.OwnerUserID, &rec.HealthStatus, &rec.CurrentVersion, &rec.ActiveIncidentCount)
 	return rec, err
 }
 

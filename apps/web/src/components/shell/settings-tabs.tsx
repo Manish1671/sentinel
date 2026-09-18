@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { StatusBadge } from "@/components/core/status-badge";
+import { SystemStatusIndicator } from "@/components/shell/system-status";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -24,29 +24,20 @@ export function SettingsTabs() {
         <Card className="rounded-lg">
           <CardHeader>
             <CardTitle className="type-card">Console</CardTitle>
-            <CardDescription>Dark-first theme is the only supported appearance in Phase 8A.</CardDescription>
+            <CardDescription>Dark-first theme is the only supported appearance.</CardDescription>
           </CardHeader>
           <CardContent className="type-meta">
-            Authentication, notification routing, and role management are not implemented in this phase.
+            Session is stored in the HttpOnly sentinel_session cookie. Role management stays in the control plane.
           </CardContent>
         </Card>
       </TabsContent>
       <TabsContent value="system" className="pt-4">
-        <section id="system-status" className="grid gap-3 sm:grid-cols-2">
-          {[
-            { name: "API", status: "healthy" as const },
-            { name: "Ingestion", status: "healthy" as const },
-            { name: "Detection", status: "healthy" as const },
-            { name: "Remediation", status: "healthy" as const },
-          ].map((item) => (
-            <Card key={item.name} size="sm" className="rounded-lg">
-              <CardHeader>
-                <CardTitle className="type-card">{item.name}</CardTitle>
-                <StatusBadge status={item.status} />
-              </CardHeader>
-              <CardContent className="type-meta">Placeholder indicator. Not a live health probe.</CardContent>
-            </Card>
-          ))}
+        <section id="system-status" className="space-y-4">
+          <SystemStatusIndicator />
+          <p className="type-meta">
+            This probe is GET /ready on apps/api. Ingestion, detection, and Kafka are not included and are not
+            reported as healthy from this screen.
+          </p>
         </section>
       </TabsContent>
     </Tabs>

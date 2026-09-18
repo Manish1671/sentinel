@@ -41,7 +41,7 @@ export function FeaturedIncident({
         <TechnicalId value={incident.service_slug} />
         {deploymentVersion ? <TechnicalId value={deploymentVersion} /> : null}
       </div>
-      <h2 className="mt-3 max-w-3xl text-[1.5rem] font-medium tracking-tight text-text-primary">{incident.title}</h2>
+      <h2 className="mt-3 max-w-3xl type-page-title">{incident.title}</h2>
       {incident.summary ? <p className="type-body mt-2 max-w-3xl">{incident.summary}</p> : null}
       <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>

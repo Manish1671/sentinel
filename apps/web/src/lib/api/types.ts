@@ -42,6 +42,7 @@ export type DeploymentSummary = {
   id: string;
   service_id?: string;
   service_slug?: string;
+  environment?: Environment;
   version: string;
   git_sha: string | null;
   status: string;
@@ -110,6 +111,7 @@ export type ToolUsage = {
 export type InvestigationDetail = {
   id: string;
   incident_id: string;
+  incident_reference?: string | null;
   status: InvestigationStatus;
   requested_by_user_id: string | null;
   model_name: string | null;
@@ -144,8 +146,10 @@ export type RecommendationDetail = {
 export type RemediationDetail = {
   id: string;
   incident_id: string;
+  incident_reference?: string | null;
   recommendation_id: string;
   service_id: string;
+  service_slug?: string | null;
   status: RemediationStatus;
   action_type: string;
   parameters: Record<string, unknown> | null;

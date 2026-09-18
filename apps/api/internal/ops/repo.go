@@ -23,13 +23,14 @@ func (r *Repository) GetInvestigation(ctx context.Context, id uuid.UUID) (Invest
 	var in Investigation
 	var toolUsage []byte
 	err := r.pool.QueryRow(ctx, `
-		SELECT id, incident_id, status::text, requested_by_user_id, model_name, model_version,
-		       root_cause_hypothesis, reasoning_summary, confidence, risk_level::text, tool_usage,
-		       error_message, requested_at, started_at, completed_at
-		FROM investigations
-		WHERE id = $1
+		SELECT i.id, i.incident_id, inc.reference, i.status::text, i.requested_by_user_id, i.model_name, i.model_version,
+		       i.root_cause_hypothesis, i.reasoning_summary, i.confidence, i.risk_level::text, i.tool_usage,
+		       i.error_message, i.requested_at, i.started_at, i.completed_at
+		FROM investigations i
+		JOIN incidents inc ON inc.id = i.incident_id
+		WHERE i.id = $1
 	`, id).Scan(
-		&in.ID, &in.IncidentID, &in.Status, &in.RequestedByUserID, &in.ModelName, &in.ModelVersion,
+		&in.ID, &in.IncidentID, &in.IncidentReference, &in.Status, &in.RequestedByUserID, &in.ModelName, &in.ModelVersion,
 		&in.RootCauseHypothesis, &in.ReasoningSummary, &in.Confidence, &in.RiskLevel, &toolUsage,
 		&in.ErrorMessage, &in.RequestedAt, &in.StartedAt, &in.CompletedAt,
 	)
@@ -72,14 +73,15 @@ func (r *Repository) listEvidence(ctx context.Context, investigationID uuid.UUID
 func (r *Repository) ListInvestigations(ctx context.Context, filter ListFilter, incidentID uuid.UUID, cursorTime time.Time, cursorID uuid.UUID) ([]Investigation, error) {
 	useCursor := cursorID != uuid.Nil
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, incident_id, status::text, requested_by_user_id, model_name, model_version,
-		       root_cause_hypothesis, reasoning_summary, confidence, risk_level::text, tool_usage,
-		       error_message, requested_at, started_at, completed_at
-		FROM investigations
-		WHERE ($1::uuid IS NULL OR incident_id = $1)
-		  AND ($2 = '' OR status::text = $2)
-		  AND ($3 OR (requested_at, id) < ($4, $5))
-		ORDER BY requested_at DESC, id DESC
+		SELECT i.id, i.incident_id, inc.reference, i.status::text, i.requested_by_user_id, i.model_name, i.model_version,
+		       i.root_cause_hypothesis, i.reasoning_summary, i.confidence, i.risk_level::text, i.tool_usage,
+		       i.error_message, i.requested_at, i.started_at, i.completed_at
+		FROM investigations i
+		JOIN incidents inc ON inc.id = i.incident_id
+		WHERE ($1::uuid IS NULL OR i.incident_id = $1)
+		  AND ($2 = '' OR i.status::text = $2)
+		  AND ($3 OR (i.requested_at, i.id) < ($4, $5))
+		ORDER BY i.requested_at DESC, i.id DESC
 		LIMIT $6
 	`, uuidOrNil(incidentID), filter.Status, !useCursor, cursorTime, cursorID, filter.Limit)
 	if err != nil {
@@ -91,7 +93,7 @@ func (r *Repository) ListInvestigations(ctx context.Context, filter ListFilter, 
 		var in Investigation
 		var toolUsage []byte
 		if err := rows.Scan(
-			&in.ID, &in.IncidentID, &in.Status, &in.RequestedByUserID, &in.ModelName, &in.ModelVersion,
+			&in.ID, &in.IncidentID, &in.IncidentReference, &in.Status, &in.RequestedByUserID, &in.ModelName, &in.ModelVersion,
 			&in.RootCauseHypothesis, &in.ReasoningSummary, &in.Confidence, &in.RiskLevel, &toolUsage,
 			&in.ErrorMessage, &in.RequestedAt, &in.StartedAt, &in.CompletedAt,
 		); err != nil {
@@ -154,12 +156,14 @@ func (r *Repository) ListRecommendations(ctx context.Context, incidentID uuid.UU
 
 func (r *Repository) GetRemediation(ctx context.Context, id uuid.UUID) (Remediation, error) {
 	row, err := r.scanRemediation(ctx, `
-		SELECT r.id, r.incident_id, r.recommendation_id, r.service_id, r.status::text, r.action_type,
+		SELECT r.id, r.incident_id, inc.reference, r.recommendation_id, r.service_id, s.slug, r.status::text, r.action_type,
 		       r.parameters, r.requested_by_user_id, r.attempt_number, r.result_summary,
 		       r.verification_status::text, r.verification_details, r.error_message,
 		       r.started_at, r.completed_at, r.created_at,
 		       a.id, a.decision::text, a.actor_user_id, a.comment, a.decided_at
 		FROM remediations r
+		JOIN incidents inc ON inc.id = r.incident_id
+		JOIN services s ON s.id = r.service_id
 		LEFT JOIN approvals a ON a.remediation_id = r.id
 		WHERE r.id = $1
 	`, id)
@@ -169,12 +173,14 @@ func (r *Repository) GetRemediation(ctx context.Context, id uuid.UUID) (Remediat
 func (r *Repository) ListRemediations(ctx context.Context, filter ListFilter, incidentID uuid.UUID, cursorTime time.Time, cursorID uuid.UUID) ([]Remediation, error) {
 	useCursor := cursorID != uuid.Nil
 	rows, err := r.pool.Query(ctx, `
-		SELECT r.id, r.incident_id, r.recommendation_id, r.service_id, r.status::text, r.action_type,
+		SELECT r.id, r.incident_id, inc.reference, r.recommendation_id, r.service_id, s.slug, r.status::text, r.action_type,
 		       r.parameters, r.requested_by_user_id, r.attempt_number, r.result_summary,
 		       r.verification_status::text, r.verification_details, r.error_message,
 		       r.started_at, r.completed_at, r.created_at,
 		       a.id, a.decision::text, a.actor_user_id, a.comment, a.decided_at
 		FROM remediations r
+		JOIN incidents inc ON inc.id = r.incident_id
+		JOIN services s ON s.id = r.service_id
 		LEFT JOIN approvals a ON a.remediation_id = r.id
 		WHERE ($1::uuid IS NULL OR r.incident_id = $1)
 		  AND ($2 = '' OR r.status::text = $2)
@@ -226,7 +232,7 @@ func (r *Repository) ListAlertsForIncident(ctx context.Context, incidentID uuid.
 func (r *Repository) ListDeployments(ctx context.Context, serviceID uuid.UUID, cursorTime time.Time, cursorID uuid.UUID, limit int) ([]Deployment, error) {
 	useCursor := cursorID != uuid.Nil
 	rows, err := r.pool.Query(ctx, `
-		SELECT d.id, d.service_id, s.slug, d.version, d.git_sha, d.status::text, d.started_at, d.completed_at
+		SELECT d.id, d.service_id, s.slug, s.environment::text, d.version, d.git_sha, d.status::text, d.started_at, d.completed_at
 		FROM deployments d
 		JOIN services s ON s.id = d.service_id
 		WHERE ($1::uuid IS NULL OR d.service_id = $1)
@@ -241,7 +247,7 @@ func (r *Repository) ListDeployments(ctx context.Context, serviceID uuid.UUID, c
 	var out []Deployment
 	for rows.Next() {
 		var d Deployment
-		if err := rows.Scan(&d.ID, &d.ServiceID, &d.ServiceSlug, &d.Version, &d.GitSHA, &d.Status, &d.StartedAt, &d.CompletedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.ServiceID, &d.ServiceSlug, &d.Environment, &d.Version, &d.GitSHA, &d.Status, &d.StartedAt, &d.CompletedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, d)
@@ -267,7 +273,7 @@ func scanRemediationRow(row rowScanner) (Remediation, error) {
 	var comment *string
 	var decided *time.Time
 	err := row.Scan(
-		&item.ID, &item.IncidentID, &item.RecommendationID, &item.ServiceID, &item.Status, &item.ActionType,
+		&item.ID, &item.IncidentID, &item.IncidentReference, &item.RecommendationID, &item.ServiceID, &item.ServiceSlug, &item.Status, &item.ActionType,
 		&params, &item.RequestedByUserID, &item.AttemptNumber, &item.ResultSummary,
 		&item.VerificationStatus, &details, &item.ErrorMessage,
 		&item.StartedAt, &item.CompletedAt, &item.CreatedAt,

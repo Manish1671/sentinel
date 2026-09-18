@@ -61,5 +61,8 @@ export function titleForPath(pathname: string): string {
   if (pathname.startsWith("/incidents/") && pathname !== "/incidents") {
     return "Incident";
   }
+  if (pathname.startsWith("/services/") && pathname !== "/services") {
+    return "Service";
+  }
   return pageTitles[pathname] ?? "Sentinel";
 }

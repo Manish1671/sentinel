@@ -1,6 +1,6 @@
 # Frontend architecture
 
-Phase 8B connects the Phase 8A operator console to the Go control-plane API. Phase 8C polishes `/incidents/[id]` as the flagship workspace. The visual system from 8A is unchanged: dark-first, technical, information-dense.
+Phase 8B connects the Phase 8A operator console to the Go control-plane API. Phase 8C is the flagship incident workspace. Phase 8D finishes the operator product surface. The visual system from 8A is unchanged: dark-first, technical, information-dense.
 
 ## Visual direction
 
@@ -49,7 +49,32 @@ UI role checks hide approval controls for `viewer` / `responder`. Backend author
 
 ## Refresh
 
-Polling lives in `src/lib/refresh.ts` so WebSocket/SSE can replace it later. Incident workspace polls faster while the incident is active; remediations poll faster while `approved` / `running` / `verifying`.
+Live updates use polling in `src/lib/refresh.ts`. SSE was assessed and deferred: `apps/api` has no incident/investigation/remediation event stream, and adding one would be new infrastructure. Pages already share `useApiResource`; swapping the transport later does not require rewriting screens.
+
+| Surface | Interval |
+| --- | --- |
+| Overview | 20s |
+| Control-plane readiness | 20s |
+| Incident workspace (active) | 8s |
+| Incident workspace (resolved/closed) | 20s |
+| Remediation pending / running / verifying | 20s / 3s |
+| Catalog lists | 30s |
+
+## Routes
+
+| Path | Data |
+| --- | --- |
+| `/overview` | Production snapshot: health, featured incident, active incidents, attention services, activity |
+| `/services` | Catalog |
+| `/services/[id]` | Service header, health, current incident, recent alerts (from incidents), deployments |
+| `/incidents` | Filterable incident list |
+| `/incidents/[id]` | Flagship workspace |
+| `/investigations` | Investigation queue with incident links |
+| `/remediations` | Lifecycle-grouped queue; approve/reject via control plane |
+| `/deployments` | Catalog deployments; incident link when the same service has a real incident whose title includes the version or whose detection time falls in a 36h window after the deploy |
+| `/settings` | Preferences + `GET /ready` system status |
+
+`GET /api/ready` (Next.js) proxies unauthenticated `GET /ready` on `apps/api`. The top bar never claims Operational if that probe fails.
 
 ## Incident Workspace
 
@@ -100,4 +125,4 @@ No historical telemetry endpoint was added. `telemetry_events` holds sparse seed
 
 ## Accessibility and responsive
 
-Semantic landmarks, skip link, labelled icon buttons, visible focus, status/severity text + marker, collapsing nav.
+Semantic landmarks, skip link, labelled icon buttons, visible focus, status/severity text + marker, collapsing nav. Desktop is primary; sidebar hides below `md`, lists stack, command search remains available from the top bar.

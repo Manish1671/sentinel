@@ -1,6 +1,6 @@
 # apps/web
 
-Next.js operator console for Sentinel (Phase 8C — flagship incident workspace on live control-plane data).
+Next.js operator console for Sentinel (Phase 8D — final operator experience on live control-plane data).
 
 This application is the human interface for incident operations. It does not own incident state, detection, or remediation execution.
 
@@ -101,26 +101,29 @@ Live WebSocket/SSE is not in this phase. `src/lib/refresh.ts` centralizes interv
 | Path | Data source |
 | --- | --- |
 | `/login` | `POST /api/v1/auth/login` |
-| `/overview` | services, incidents, remediations, featured incident |
+| `/overview` | services, incidents, pending remediations, featured incident |
 | `/services` | `GET /api/v1/services` |
+| `/services/[id]` | `GET /api/v1/services/{id}` plus incidents and attached alerts |
 | `/incidents` | `GET /api/v1/incidents` |
-| `/incidents/[id]` | Flagship workspace: incident, timeline, correlation signals, alerts, investigation, evidence, recommendation, remediation. Telemetry charts remain unavailable until `apps/api` exposes a historical series. |
+| `/incidents/[id]` | Flagship workspace (incident, timeline, alerts, investigation, recommendation, remediation) |
+| `/investigations` | `GET /api/v1/investigations` |
+| `/remediations` | `GET /api/v1/remediations` + approval mutations |
+| `/deployments` | `GET /api/v1/deployments` |
+| `/settings` | operator chrome; system status from `GET /api/ready` → `apps/api` `GET /ready` |
 
 ## Incident workspace data flow
 
 ```
 Browser
-  → Next.js /api/v1/* (cookie session)
+  → Next.js /api/v1/* (cookie session) and GET /api/ready
   → Go apps/api
   → PostgreSQL incident / investigation / recommendation / remediation rows
   → services/remediation only for approve | reject
 ```
 
-The live incident page does not import `src/lib/mock`. Partial subsection failures render in place; a missing investigation does not blank the page. Polling uses `incidentRefreshMs` / `remediationRefreshMs` in `src/lib/refresh.ts`.
-| `/investigations` | `GET /api/v1/investigations` |
-| `/remediations` | `GET /api/v1/remediations` + approval mutations |
-| `/deployments` | `GET /api/v1/deployments` |
-| `/settings` | local chrome only |
+The live pages do not import `src/lib/mock`. Partial subsection failures render in place. Polling uses `src/lib/refresh.ts`. SSE is not implemented: the control plane has no event stream.
+
+Phase 8D completes the operator product surface. Historical telemetry APIs remain unavailable.
 
 ## Environment
 
@@ -133,4 +136,4 @@ Do not put database credentials, AI keys, or JWT secrets in `NEXT_PUBLIC_*` vari
 
 ## Status
 
-Phase 8C is the flagship incident workspace. Phase 8 (full operator product, including historical telemetry APIs) is **not** complete.
+Phase 8D completes the operator console. Historical telemetry APIs remain unavailable. Observability and Kubernetes/AWS are later phases.

@@ -24,5 +24,5 @@ export function listServices(
 }
 
 export function getService(id: string, init: FetchInit = {}) {
-  return apiFetch<ItemResponse<ServiceDetail>>(`/api/v1/services/${id}`, { signal: init.signal });
+  return apiFetch<ItemResponse<ServiceDetail>>(`/api/v1/services/${encodeURIComponent(id)}`, { signal: init.signal });
 }

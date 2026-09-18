@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { EmptyState } from "@/components/core/empty-state";
 import { ErrorState } from "@/components/core/error-state";
 import { LoadingState } from "@/components/core/loading-state";
@@ -43,27 +44,29 @@ export function ServiceList() {
   }
 
   return (
-    <ul className="divide-y divide-border rounded-md border border-border">
+    <ul className="divide-y divide-border">
       {services.map((service) => (
-        <li
-          key={service.id}
-          className={cn(
-            "grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.6fr)_auto_auto_auto] md:items-center",
-            service.health_status !== "healthy" && "bg-warning/[0.03]",
-          )}
-        >
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[13px] font-medium tracking-tight">{service.name}</p>
-              <TechnicalId value={service.slug} />
+        <li key={service.id}>
+          <Link
+            href={`/services/${service.id}`}
+            className={cn(
+              "grid gap-3 px-1 py-3 transition-colors hover:bg-surface/60 md:grid-cols-[minmax(0,1.6fr)_auto_auto_auto] md:items-center",
+              service.health_status !== "healthy" && "bg-warning/[0.03]",
+            )}
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[13px] font-medium tracking-tight">{service.name}</p>
+                <TechnicalId value={service.slug} />
+              </div>
+              <p className="type-meta mt-1 uppercase">{service.environment}</p>
             </div>
-            <p className="type-meta mt-1 uppercase">{service.environment}</p>
-          </div>
-          <StatusBadge status={healthToOperational(service.health_status)} />
-          {service.current_version ? <TechnicalId value={service.current_version} /> : <span className="type-meta">No version</span>}
-          <span className="type-meta">
-            {service.active_incident_count} inc
-          </span>
+            <StatusBadge status={healthToOperational(service.health_status)} />
+            {service.current_version ? <TechnicalId value={service.current_version} /> : <span className="type-meta">No version</span>}
+            <span className="type-meta">
+              {service.active_incident_count} active
+            </span>
+          </Link>
         </li>
       ))}
     </ul>

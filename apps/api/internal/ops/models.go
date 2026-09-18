@@ -10,6 +10,7 @@ import (
 type Investigation struct {
 	ID                   uuid.UUID
 	IncidentID           uuid.UUID
+	IncidentReference    string
 	Status               string
 	RequestedByUserID    *uuid.UUID
 	ModelName            *string
@@ -56,8 +57,10 @@ type Recommendation struct {
 type Remediation struct {
 	ID                  uuid.UUID
 	IncidentID          uuid.UUID
+	IncidentReference   string
 	RecommendationID    uuid.UUID
 	ServiceID           uuid.UUID
+	ServiceSlug         string
 	Status              string
 	ActionType          string
 	Parameters          json.RawMessage
@@ -98,6 +101,7 @@ type Deployment struct {
 	ID          uuid.UUID
 	ServiceID   uuid.UUID
 	ServiceSlug string
+	Environment string
 	Version     string
 	GitSHA      *string
 	Status      string

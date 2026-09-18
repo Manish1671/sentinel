@@ -49,12 +49,7 @@ func (s *Server) getService(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.currentUser(w, r); !ok {
 		return
 	}
-	id, err := pathUUID(r, "id")
-	if err != nil {
-		writeError(w, r, s.log, err)
-		return
-	}
-	item, deps, err := s.catalog.Get(r.Context(), id)
+	item, deps, err := s.catalog.Resolve(r.Context(), r.PathValue("id"))
 	if err != nil {
 		writeError(w, r, s.log, err)
 		return

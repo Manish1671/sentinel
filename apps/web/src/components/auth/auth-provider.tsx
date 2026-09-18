@@ -81,6 +81,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <div className="max-w-md space-y-3">
           <p className="text-[15px] font-medium tracking-tight">Unable to load operator session</p>
           <p className="type-meta">{error ?? "Authentication required."}</p>
+          <button
+            type="button"
+            className="rounded-md border border-border px-3 py-1.5 text-[13px] hover:bg-muted"
+            onClick={() => {
+              setLoading(true);
+              void load();
+            }}
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

@@ -32,6 +32,7 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
 .next/
+.next-build/
 out/
 dist/
 build/

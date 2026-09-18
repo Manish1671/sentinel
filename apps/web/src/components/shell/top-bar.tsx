@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/core/icon-button";
 import { useAuth } from "@/components/auth/auth-provider";
+import { SystemStatusIndicator } from "@/components/shell/system-status";
 import { Menu, Search } from "lucide-react";
 import { titleForPath } from "@/lib/navigation";
 import { usePathname } from "next/navigation";
@@ -41,7 +42,11 @@ export function TopBar({ onOpenCommand, onOpenMobileNav }: TopBarProps) {
         <span className="text-border" aria-hidden>
           /
         </span>
-        <span className="type-meta text-text-muted">{user.role}</span>
+        <SystemStatusIndicator compact />
+        <span className="text-border" aria-hidden>
+          /
+        </span>
+        <span className="type-meta text-text-muted capitalize">{user.role}</span>
       </div>
       <Button
         variant="outline"
@@ -73,7 +78,7 @@ export function TopBar({ onOpenCommand, onOpenMobileNav }: TopBarProps) {
           >
             <p className="px-1.5 py-1 text-xs font-medium text-muted-foreground">{user.display_name}</p>
             <p className="type-meta px-1.5 py-1">{user.email}</p>
-            <p className="type-meta px-1.5 py-1 capitalize">{user.role}</p>
+            <p className="type-meta px-1.5 py-1 capitalize">Signed in · {user.role}</p>
             <div className="my-1 h-px bg-border" />
             <button
               type="button"

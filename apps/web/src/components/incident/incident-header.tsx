@@ -23,7 +23,7 @@ export function IncidentHeader({ incident, deploymentVersion }: IncidentHeaderPr
         <span aria-hidden className="text-border">
           ·
         </span>
-        <Link href="/services" className="hover:text-text-primary">
+        <Link href={`/services/${incident.service_id}`} className="hover:text-text-primary">
           <TechnicalId value={incident.service_slug} />
         </Link>
         <span aria-hidden className="text-border">
