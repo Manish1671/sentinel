@@ -40,6 +40,9 @@ func (s *Simulator) State(ctx context.Context, serviceID uuid.UUID) (State, erro
 }
 
 func (s *Simulator) Execute(ctx context.Context, action Action) (res Result, err error) {
+	if faultExecuteFail() {
+		return Result{}, fmt.Errorf("sentinel fault injection: remediation execute failed (test-only)")
+	}
 	if err := s.Validate(ctx, action); err != nil {
 		return Result{}, err
 	}
@@ -95,6 +98,13 @@ func (s *Simulator) Execute(ctx context.Context, action Action) (res Result, err
 	}
 	st.LastAction = canonical
 	st.LastRemediationID = action.RemediationID.String()
+	if faultVerifyFail() {
+		// Leave signals above verification criteria so recovery must not be claimed.
+		st.HealthStatus = "unhealthy"
+		st.ErrorRate = 0.20
+		st.LatencyMS = 2200
+		st.DBUtilization = 0.97
+	}
 	if err := saveTx(ctx, tx, st); err != nil {
 		return Result{}, err
 	}

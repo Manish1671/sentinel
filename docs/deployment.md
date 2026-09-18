@@ -64,6 +64,7 @@ GitHub workflow `.github/workflows/deploy.yml` is **manual** (`workflow_dispatch
 | Terraform fmt/validate | Implemented; **no apply** |
 | kind/minikube full stack | Scripts provided; optional |
 | AWS `terraform apply` / live EKS | **Not performed** unless an operator runs it |
+| Chaos/evaluation (`evaluation/chaos`) | Implemented; run `python -m evaluation.chaos.run` against Compose + API |
 
 ## 6. Cost-sensitive demo notes
 

@@ -5,6 +5,7 @@ import os
 import time
 from uuid import UUID, uuid4
 
+from app.agent.faults import InjectedInvestigationFailure, fail_investigation
 from app.agent.investigator import investigate
 from app.config import Settings
 from app.kafka.envelope import (
@@ -81,6 +82,8 @@ class Processor:
                 self.settings.max_tool_calls,
             )
             try:
+                if fail_investigation():
+                    raise InjectedInvestigationFailure()
                 result, evidence = investigate(req, tools, self.settings, bundle.get("timeline") or [])
                 with tracer().start_as_current_span("sentinel.db.persist"):
                     store.persist_success(self.conn, result, evidence, kafka_event_id)

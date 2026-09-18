@@ -1,0 +1,14 @@
+{
+  "id": "CHAOS-008",
+  "name": "repeated API create with the same idempotency key",
+  "inject": {
+    "kind": "none"
+  },
+  "expected": {
+    "idempotent_incident_create": true,
+    "investigate": false,
+    "approve": false
+  },
+  "cleanup": "none",
+  "pass_fail": "two POST /api/v1/incidents with the same Idempotency-Key and body return the same incident id"
+}

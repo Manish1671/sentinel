@@ -1,4 +1,7 @@
-"""Keyword checks against an InvestigationResult. Not a published benchmark."""
+"""Keyword checks against an InvestigationResult. Not a published benchmark.
+
+Live chaos scoring is `python -m evaluation.chaos.run`.
+"""
 
 from __future__ import annotations
 

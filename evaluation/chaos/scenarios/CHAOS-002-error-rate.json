@@ -1,0 +1,20 @@
+{
+  "id": "CHAOS-002",
+  "name": "payments-api error-rate degradation",
+  "inject": {
+    "kind": "telemetry",
+    "latency_ms": 40,
+    "error_rate": 0.12,
+    "db_utilization": 0.40,
+    "version": null,
+    "log_error": true
+  },
+  "expected": {
+    "detectors": ["high_error_rate"],
+    "service_slug": "payments-api",
+    "investigate": true,
+    "approve": false
+  },
+  "cleanup": "emit healthy payments-api metrics",
+  "pass_fail": "high_error_rate alert exists and is correlated to a payments-api incident"
+}

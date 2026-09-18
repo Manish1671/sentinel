@@ -73,11 +73,12 @@ scripts/          Local and operational scripts
 9. **Phase 8 — Operator UI**
 10. **Phase 9 — Observability**
 11. **Phase 10 — Kubernetes, Terraform & AWS**
-12. **Phase 11 — Failure injection, evaluation & final polish** (current)
+12. **Phase 11 — Failure injection, evaluation & final polish**
 
 ## Current project status
 
-**Phase 10 — Kubernetes, Terraform & AWS** is complete (manifests, Terraform, CI/CD foundations). AWS has not been applied from this repository. Next: Phase 11.
+**Phase 11 — Failure injection, evaluation & final polish** is complete for the local chaos/evaluation harness. See [evaluation/README.md](evaluation/README.md). AWS was not used.
+
 
 ## Local infrastructure
 
@@ -110,3 +111,4 @@ Run `apps/api` (`:8080`) and `apps/web` (`:3000`) on the host. See [observabilit
 - [HTTP API](docs/api/README.md)
 - [Idempotency](docs/architecture/idempotency.md)
 - [Deployment](docs/deployment.md)
+- [Evaluation / chaos](evaluation/README.md)

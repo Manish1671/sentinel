@@ -1,0 +1,16 @@
+{
+  "id": "CHAOS-006",
+  "name": "remediation verification failure",
+  "inject": {
+    "kind": "none"
+  },
+  "requires_fault": ["SENTINEL_FAULT_INJECTION", "REMEDIATION_FAULT_VERIFY_FAIL"],
+  "expected": {
+    "verification": "failed",
+    "incident_resolved": false,
+    "investigate": false,
+    "approve": false
+  },
+  "cleanup": "unset fault flags (process-local in Go test)",
+  "pass_fail": "after execute, verification fails; remediation failed; incident remains active. Live compose requires fault env on remediation; default path is the Go integration test."
+}

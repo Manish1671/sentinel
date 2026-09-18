@@ -2,10 +2,5 @@
 
 Canonical architecture notes live in this folder. Start with [architecture/README.md](./architecture/README.md).
 
-Phase 10 adds Kubernetes and AWS **foundations** without changing product workflows:
+Phase 11 adds a **deterministic chaos and evaluation harness** (`evaluation/chaos/`) that drives the existing ingestion, detection, incident, AI, API, and remediation paths. Fault flags are off by default. See [evaluation/README.md](../evaluation/README.md).
 
-- Local: Docker Compose (PostgreSQL, Redis, Kafka, domain services, optional OTel/Prometheus/Grafana).
-- Kubernetes: stateless Sentinel workloads + Ingress. Local overlay may run Postgres/Redis/Kafka for kind only.
-- AWS: EKS + RDS + ElastiCache + S3 via Terraform. Kafka remains `KAFKA_BROKERS`.
-
-Deployment mechanics: [deployment.md](./deployment.md). Observability: [architecture/observability.md](./architecture/observability.md).

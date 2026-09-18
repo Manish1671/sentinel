@@ -1,0 +1,16 @@
+{
+  "id": "CHAOS-007",
+  "name": "AI investigation failure",
+  "inject": {
+    "kind": "none"
+  },
+  "requires_fault": ["SENTINEL_FAULT_INJECTION", "AI_FAULT_FAIL_INVESTIGATION"],
+  "expected": {
+    "investigation_status": "failed",
+    "no_successful_recommendation": true,
+    "investigate": false,
+    "approve": false
+  },
+  "cleanup": "unset fault flags (process-local in pytest)",
+  "pass_fail": "investigation status is failed; no completed InvestigationResult is persisted as success"
+}

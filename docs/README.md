@@ -11,3 +11,5 @@ Project documentation. Start with [architecture/README.md](./architecture/README
 | `events/` | Kafka topics and envelopes |
 | `decisions/` | Architecture decision records |
 | `ai/` | Investigation flow and tool policy |
+| [evaluation/README.md](../evaluation/README.md) | Chaos scenarios and evaluation harness |
+

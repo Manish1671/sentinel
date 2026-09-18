@@ -124,3 +124,7 @@ See [deployment.md](../deployment.md).
 ## 11. Kubernetes communication
 
 Pods talk over ClusterIP Services, not localhost. The operator console proxies to `API_URL` (`http://api:8080` in-cluster). The control plane calls `REMEDIATION_URL` (`http://remediation:8093`). Kafka consumers use `KAFKA_BROKERS`.
+
+## 12. Evaluation
+
+Local chaos scenarios inject telemetry through ingestion and assert detection/correlation/approval through the real APIs. See [evaluation/README.md](../../evaluation/README.md).

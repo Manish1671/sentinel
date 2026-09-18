@@ -144,3 +144,36 @@ async def test_processor_idempotent_run(conn):
         "SELECT count(*) AS n FROM recommendations WHERE investigation_id = %s", (inv_id,)
     ).fetchone()["n"]
     assert recs >= 1
+
+
+@pytest.mark.asyncio
+async def test_fault_injection_fails_investigation(monkeypatch, conn):
+    monkeypatch.setenv("SENTINEL_FAULT_INJECTION", "true")
+    monkeypatch.setenv("AI_FAULT_FAIL_INVESTIGATION", "true")
+    from app.agent.faults import fail_investigation
+
+    assert fail_investigation() is True
+    settings = Settings(
+        database_url=os.environ.get("DATABASE_URL", "postgres://x"),
+        kafka_brokers="localhost:9092",
+        ai_api_key="",
+    )
+    incident_id = UUID("33333333-3333-4333-8333-333333333334")
+    bundle = load_incident_bundle(conn, incident_id)
+    if not bundle:
+        pytest.skip("seed incident missing")
+    inv_id = uuid4()
+    req = request_from_bundle(inv_id, bundle, uuid4())
+    upsert_investigation_requested(conn, req, f"investigation:{inv_id}")
+    proc = Processor(conn, FakeKafka(), settings)
+    out = await proc.run(req, causation_id=None, kafka_event_id=None)
+    assert out["status"] == "failed"
+    assert "fault injection" in (out.get("error") or "")
+    row = conn.execute("SELECT status FROM investigations WHERE id = %s", (inv_id,)).fetchone()
+    assert row["status"] == "failed"
+    recs = conn.execute(
+        "SELECT count(*) AS n FROM recommendations WHERE investigation_id = %s", (inv_id,)
+    ).fetchone()["n"]
+    assert recs == 0
+    monkeypatch.delenv("SENTINEL_FAULT_INJECTION", raising=False)
+    monkeypatch.delenv("AI_FAULT_FAIL_INVESTIGATION", raising=False)

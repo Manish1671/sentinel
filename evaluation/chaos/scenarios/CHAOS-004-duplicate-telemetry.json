@@ -1,0 +1,21 @@
+{
+  "id": "CHAOS-004",
+  "name": "duplicate/replayed telemetry",
+  "inject": {
+    "kind": "telemetry_replay",
+    "latency_ms": 1600,
+    "error_rate": 0.002,
+    "db_utilization": 0.35,
+    "version": null,
+    "log_error": false
+  },
+  "expected": {
+    "detectors": ["high_latency"],
+    "replayed": true,
+    "no_duplicate_alert_ids": true,
+    "investigate": false,
+    "approve": false
+  },
+  "cleanup": "emit healthy payments-api metrics",
+  "pass_fail": "second ingest with the same event_id is replayed; open high_latency alert count does not increase"
+}

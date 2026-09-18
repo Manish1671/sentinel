@@ -109,3 +109,9 @@ temp/
 # Observability local volumes
 observability/grafana/data/
 observability/prometheus/data/
+
+# Evaluation run artifacts (commit examples only via README)
+evaluation/results/*.json
+evaluation/results/*.md
+!evaluation/results/README.md
+

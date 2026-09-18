@@ -1,0 +1,20 @@
+{
+  "id": "CHAOS-003",
+  "name": "payments-api database connection saturation",
+  "inject": {
+    "kind": "telemetry",
+    "latency_ms": 40,
+    "error_rate": 0.002,
+    "db_utilization": 0.96,
+    "version": null,
+    "log_error": false
+  },
+  "expected": {
+    "detectors": ["db_connection_saturation"],
+    "service_slug": "payments-api",
+    "investigate": false,
+    "approve": false
+  },
+  "cleanup": "emit healthy payments-api metrics",
+  "pass_fail": "db_connection_saturation alert exists on a payments-api incident"
+}

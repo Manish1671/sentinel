@@ -197,6 +197,38 @@ func TestHappyPathAndIdempotency(t *testing.T) {
 	}
 }
 
+func TestVerificationFailureKeepsIncidentActive(t *testing.T) {
+	t.Setenv("SENTINEL_FAULT_INJECTION", "true")
+	t.Setenv("REMEDIATION_FAULT_VERIFY_FAIL", "true")
+	proc, store, db, ctx := testEnv(t)
+	incidentID, recID, _ := insertHarness(t, ctx, db)
+	rec, _ := store.GetRecommendation(ctx, recID)
+	row, err := proc.CreateFromRecommendation(ctx, rec, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	approver := approvals.Actor{ID: uuid.MustParse("11111111-1111-4111-8111-111111111112"), Role: "approver"}
+	if _, err := proc.Approve(ctx, row.ID, approver, "", "idem-verify-"+uuid.NewString()[:8]+"-xx", "hv"); err != nil {
+		t.Fatal(err)
+	}
+	env := requestedEnvelope(row.ID, incidentID, recID, row.ServiceID)
+	raw, _ := json.Marshal(env)
+	if _, err := proc.Handle(ctx, raw, events.TopicRequested, 0, 1); err != nil {
+		t.Fatal(err)
+	}
+	failed, _ := store.GetRemediation(ctx, row.ID)
+	if failed.Status != "failed" {
+		t.Fatalf("status %s", failed.Status)
+	}
+	if failed.VerificationStatus != "failed" {
+		t.Fatalf("verification %s", failed.VerificationStatus)
+	}
+	inc, _ := store.GetIncident(ctx, incidentID)
+	if inc.Status == "resolved" || inc.Status == "closed" {
+		t.Fatalf("incident must stay active, got %s", inc.Status)
+	}
+}
+
 func TestExecutorFailureLeavesIncidentActive(t *testing.T) {
 	proc, store, db, ctx := testEnv(t)
 	incidentID, recID, _ := insertHarness(t, ctx, db)

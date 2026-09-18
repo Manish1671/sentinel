@@ -137,7 +137,18 @@ AWS `terraform apply` was **not** run; no cloud resources were created.
 CPU/memory values are starting limits, not load-tested capacity.
 
 ## Phase 11 — Failure Injection, Evaluation & Final Polish
-Status: ⏳ Not Started
+Status: ✅ Complete
+
+Summary:
+Added a deterministic chaos/evaluation harness (`evaluation/chaos`) that injects
+telemetry through ingestion and asserts detection, correlation, investigation,
+approval, and idempotency on the live local stack. Fault injection is off unless
+`SENTINEL_FAULT_INJECTION` plus a specific flag is set. Live run `20260918T031540Z-f3cdcea8`
+passed CHAOS-001..005 and CHAOS-008. CHAOS-006/007 were executed in-process
+(Go `TestVerificationFailureKeepsIncidentActive`, pytest
+`test_fault_injection_fails_investigation`), not by mutating Compose env.
+Detection latency was not reported for reused open fingerprints (alerts from
+2026-09-15). No AWS resources were created.
 
 ## Git Checkpoints
 

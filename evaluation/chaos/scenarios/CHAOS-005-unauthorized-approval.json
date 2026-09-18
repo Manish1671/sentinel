@@ -1,0 +1,16 @@
+{
+  "id": "CHAOS-005",
+  "name": "unauthorized remediation approval",
+  "inject": {
+    "kind": "none"
+  },
+  "expected": {
+    "unauthorized_approve": true,
+    "remediation_id": "66666666-6666-4666-8666-666666666661",
+    "http_status": 403,
+    "investigate": false,
+    "approve": false
+  },
+  "cleanup": "none",
+  "pass_fail": "viewer receives 403; seeded pending remediation is not executed"
+}

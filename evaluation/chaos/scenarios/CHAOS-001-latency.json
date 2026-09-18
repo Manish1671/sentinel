@@ -1,0 +1,21 @@
+{
+  "id": "CHAOS-001",
+  "name": "payments-api latency degradation",
+  "inject": {
+    "kind": "telemetry",
+    "latency_ms": 1500,
+    "error_rate": 0.002,
+    "db_utilization": 0.35,
+    "version": "1.18.0",
+    "log_error": false
+  },
+  "expected": {
+    "detectors": ["high_latency"],
+    "service_slug": "payments-api",
+    "investigate": true,
+    "approve": false,
+    "incident_resolved": false
+  },
+  "cleanup": "emit healthy payments-api metrics",
+  "pass_fail": "high_latency alert exists on a payments-api incident; investigation completes with schema-valid result when requested"
+}
