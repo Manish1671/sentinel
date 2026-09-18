@@ -1,0 +1,19 @@
+aws_region   = "us-east-1"
+environment  = "demo"
+project_name = "sentinel"
+cluster_name = "sentinel-demo"
+
+vpc_cidr             = "10.40.0.0/16"
+public_subnet_cidrs  = ["10.40.0.0/24", "10.40.1.0/24"]
+private_subnet_cidrs = ["10.40.10.0/24", "10.40.11.0/24"]
+availability_zones   = ["us-east-1a", "us-east-1b"]
+
+# Starting sizes for a cost-conscious demo. Not performance-tested.
+node_instance_type = "t3.medium"
+node_desired_size  = 2
+db_instance_class  = "db.t4g.micro"
+redis_node_type    = "cache.t4g.micro"
+
+enable_github_oidc = false
+github_org         = "sentinel-dev"
+github_repo        = "sentinel"

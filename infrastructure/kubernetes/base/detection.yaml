@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detection
+  namespace: sentinel
+  labels:
+    app.kubernetes.io/name: detection
+    app.kubernetes.io/part-of: sentinel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: detection
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: detection
+        app.kubernetes.io/part-of: sentinel
+    spec:
+      serviceAccountName: sentinel-detection
+      terminationGracePeriodSeconds: 25
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: detection
+          image: sentinel/detection:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8091
+          envFrom:
+            - configMapRef:
+                name: sentinel-config
+            - secretRef:
+                name: sentinel-secrets
+          env:
+            - name: PORT
+              value: "8091"
+            - name: OTEL_SERVICE_NAME
+              value: sentinel-detection
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 18
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 10
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: detection
+  namespace: sentinel
+  labels:
+    app.kubernetes.io/name: detection
+spec:
+  selector:
+    app.kubernetes.io/name: detection
+  ports:
+    - name: http
+      port: 8091
+      targetPort: http

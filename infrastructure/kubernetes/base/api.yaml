@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: sentinel
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: sentinel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+        app.kubernetes.io/part-of: sentinel
+    spec:
+      serviceAccountName: sentinel-api
+      terminationGracePeriodSeconds: 20
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+      containers:
+        - name: api
+          image: sentinel/api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: sentinel-config
+            - secretRef:
+                name: sentinel-secrets
+          env:
+            - name: PORT
+              value: "8080"
+            - name: OTEL_SERVICE_NAME
+              value: sentinel-api
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 12
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 10
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: sentinel
+  labels:
+    app.kubernetes.io/name: api
+spec:
+  selector:
+    app.kubernetes.io/name: api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

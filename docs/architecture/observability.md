@@ -96,6 +96,17 @@ Observability processes are optional. Empty `OTEL_EXPORTER_OTLP_ENDPOINT` disabl
 
 Provisioned under `observability/grafana/dashboards/`. Values come only from scraped instrumentation.
 
+## Local vs cloud
+
+| Layer | Local (Compose profile `observability`) | Kubernetes / AWS |
+| --- | --- | --- |
+| OTLP | Collector on `:4317`/`:4318` | Same env `OTEL_EXPORTER_OTLP_ENDPOINT`; run a collector in-cluster if you want export |
+| Prometheus scrape | Compose scrape configs | Reuse `/metrics` on each service; do not assume this repo installs Prometheus on EKS |
+| Grafana | `:3002`, provisioned dashboards | Dashboards in `observability/grafana/` can be imported; not deployed by Terraform |
+| Traces | Collector debug exporter | Same application spans; no Tempo/X-Ray module in this phase |
+
+The applications are cloud-ready on the **contract** (OTLP + Prometheus). Shipping a managed observability backend is operator-owned.
+
 ## Known limitations
 
 - No Tempo/Jaeger/Loki. Traces stay on the collector debug exporter. Logs stay on container stdout.

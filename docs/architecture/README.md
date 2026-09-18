@@ -110,12 +110,17 @@ Developers run infrastructure with Docker Compose:
 
 ## 10. Eventual production architecture
 
-On AWS:
+On AWS (Terraform + EKS overlay; **apply is operator-driven and not assumed done**):
 
 - Kubernetes (EKS) for apps and services
-- RDS PostgreSQL, ElastiCache Redis, managed Kafka, S3
-- OpenTelemetry → Prometheus/Grafana (and later a tracing backend)
+- RDS PostgreSQL, ElastiCache Redis, S3
+- Kafka via existing `KAFKA_BROKERS` (no MSK module in this phase)
+- OpenTelemetry → Prometheus/Grafana (Compose locally; same contracts in-cluster)
 - GitHub Actions for CI; Terraform for infrastructure
-- IAM roles for workloads; no embedded production credentials
+- IAM roles for workloads (IRSA); no embedded production credentials
 
-Production is a later phase. Local development remains the default inner loop.
+See [deployment.md](../deployment.md).
+
+## 11. Kubernetes communication
+
+Pods talk over ClusterIP Services, not localhost. The operator console proxies to `API_URL` (`http://api:8080` in-cluster). The control plane calls `REMEDIATION_URL` (`http://remediation:8093`). Kafka consumers use `KAFKA_BROKERS`.

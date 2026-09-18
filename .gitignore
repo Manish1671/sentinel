@@ -76,6 +76,11 @@ go.work.sum
 *.log
 docker-compose.override.yml
 
+# Kubernetes local artifacts
+*.kubeconfig
+kubeconfig
+infrastructure/kubernetes/overlays/aws/secret.yaml
+
 # Terraform
 terraform/.terraform/
 .terraform/
@@ -88,9 +93,7 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-
-# Kubernetes local artifacts
-*.kubeconfig
+infrastructure/terraform/.terraform/
 
 # Object storage / local data
 data/

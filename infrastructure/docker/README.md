@@ -1,13 +1,5 @@
 # infrastructure/docker
 
-Docker images and Compose extras for Sentinel.
+Application Dockerfiles live next to each service (`apps/api`, `apps/web`, `services/*`). Root `docker-compose.yml` remains the local inner loop.
 
-Root `docker-compose.yml` currently starts local PostgreSQL, Redis, and Kafka.
-
-This directory will later hold:
-
-- service Dockerfiles
-- local Compose overlays
-- image build notes
-
-Application images are not built in Phase 0.
+Kubernetes and AWS do **not** replace Compose. Image build notes: [kubernetes/README.md](../kubernetes/README.md).

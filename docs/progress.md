@@ -125,7 +125,16 @@ Collector, Prometheus, and Grafana run under Compose profile `observability`.
 Kubernetes/AWS remain Phase 10.
 
 ## Phase 10 — Kubernetes, Terraform & AWS
-Status: ⏳ Not Started
+Status: ✅ Complete
+
+Summary:
+Added Kubernetes manifests (base + local/aws overlays) for the seven
+stateless workloads, Terraform modules for VPC/EKS/RDS/ElastiCache/S3/IAM,
+and GitHub Actions CI (tests + kustomize/kubeconform + terraform validate),
+image build (SHA tags; push gated), and a manual deploy workflow.
+Local Docker Compose is unchanged. Kafka is still `KAFKA_BROKERS` (no MSK).
+AWS `terraform apply` was **not** run; no cloud resources were created.
+CPU/memory values are starting limits, not load-tested capacity.
 
 ## Phase 11 — Failure Injection, Evaluation & Final Polish
 Status: ⏳ Not Started

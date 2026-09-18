@@ -1,0 +1,123 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sentinel
+          POSTGRES_PASSWORD: sentinel
+          POSTGRES_DB: sentinel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sentinel -d sentinel"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://sentinel:sentinel@localhost:5432/sentinel?sslmode=disable
+      AUTH_TOKEN_SECRET: local-dev-token-secret
+      MIGRATIONS_PATH: database/migrations
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+      - name: Test Go modules
+        run: |
+          set -e
+          for d in packages/telemetry apps/api services/ingestion services/detection services/incident services/remediation; do
+            echo "== $d =="
+            (cd "$d" && go test ./...)
+          done
+
+  python:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sentinel
+          POSTGRES_PASSWORD: sentinel
+          POSTGRES_DB: sentinel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sentinel -d sentinel"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://sentinel:sentinel@localhost:5432/sentinel?sslmode=disable
+      KAFKA_BROKERS: localhost:9092
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test AI service
+        working-directory: services/ai
+        run: |
+          pip install -r requirements.txt
+          PYTHONPATH=. pytest -q tests
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Lint, test, build
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+
+  kubernetes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.31.0"
+      - name: Render and validate manifests
+        run: |
+          kubectl kustomize infrastructure/kubernetes/overlays/local > /tmp/sentinel-local.yaml
+          kubectl kustomize infrastructure/kubernetes/overlays/aws > /tmp/sentinel-aws.yaml
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          ./kubeconform -strict -summary /tmp/sentinel-local.yaml
+          ./kubeconform -strict -summary /tmp/sentinel-aws.yaml
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+      - name: Format and validate
+        working-directory: infrastructure/terraform
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose config
+        run: docker compose --profile observability config --quiet

@@ -1,0 +1,69 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: sentinel
+resources:
+  - ../../base
+  - hpa.yaml
+  - pdb.yaml
+patches:
+  - path: config-patch.yaml
+  - target:
+      kind: Ingress
+      name: sentinel
+    patch: |-
+      - op: replace
+        path: /spec/ingressClassName
+        value: alb
+      - op: add
+        path: /metadata/annotations/alb.ingress.kubernetes.io~1scheme
+        value: internet-facing
+      - op: add
+        path: /metadata/annotations/alb.ingress.kubernetes.io~1target-type
+        value: ip
+      - op: add
+        path: /metadata/annotations/alb.ingress.kubernetes.io~1listen-ports
+        value: '[{"HTTP":80}]'
+  - path: irsa-patch.yaml
+    target:
+      kind: ServiceAccount
+      name: sentinel-api
+  - path: irsa-patch.yaml
+    target:
+      kind: ServiceAccount
+      name: sentinel-ai
+  - target:
+      kind: Deployment
+      name: api
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+  - target:
+      kind: Deployment
+      name: web
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+images:
+  - name: sentinel/api
+    newName: ghcr.io/sentinel-dev/sentinel-api
+    newTag: latest
+  - name: sentinel/ingestion
+    newName: ghcr.io/sentinel-dev/sentinel-ingestion
+    newTag: latest
+  - name: sentinel/detection
+    newName: ghcr.io/sentinel-dev/sentinel-detection
+    newTag: latest
+  - name: sentinel/incident
+    newName: ghcr.io/sentinel-dev/sentinel-incident
+    newTag: latest
+  - name: sentinel/ai
+    newName: ghcr.io/sentinel-dev/sentinel-ai
+    newTag: latest
+  - name: sentinel/remediation
+    newName: ghcr.io/sentinel-dev/sentinel-remediation
+    newTag: latest
+  - name: sentinel/web
+    newName: ghcr.io/sentinel-dev/sentinel-web
+    newTag: latest

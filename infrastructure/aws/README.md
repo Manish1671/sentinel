@@ -1,14 +1,17 @@
-# infrastructure/aws
+# AWS
 
-AWS-specific notes and environment conventions.
+Production landing zone is defined in Terraform (`../terraform/`) and consumed by Kubernetes (`../kubernetes/overlays/aws`).
 
-Planned production landing zone (later):
+Intended mapping:
 
-- EKS for services
-- RDS PostgreSQL
-- ElastiCache Redis
-- MSK or equivalent Kafka
-- S3 for artifacts
-- IAM roles for service identities (no long-lived keys in app config when possible)
+| Concern | AWS |
+| --- | --- |
+| Compute | EKS |
+| PostgreSQL | RDS |
+| Redis | ElastiCache |
+| Artifacts | S3 |
+| Ingress | AWS Load Balancer Controller + ALB (install the controller separately) |
+| Kafka | Operator-managed; `KAFKA_BROKERS` only |
+| Identity | IRSA, no long-lived keys in pods |
 
-This folder is documentation-first until Terraform modules exist.
+This directory stays documentation-first. Apply order is in [docs/deployment.md](../../docs/deployment.md).

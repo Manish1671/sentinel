@@ -1,0 +1,64 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub environment name
+        required: true
+        default: demo
+      terraform_plan:
+        description: Run terraform plan
+        type: boolean
+        default: true
+      terraform_apply:
+        description: Apply Terraform (creates AWS resources)
+        type: boolean
+        default: false
+      kubernetes_apply:
+        description: Apply Kubernetes aws overlay
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        if: ${{ secrets.AWS_DEPLOY_ROLE_ARN != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+      - name: Terraform plan
+        if: ${{ inputs.terraform_plan && secrets.AWS_DEPLOY_ROLE_ARN != '' }}
+        working-directory: infrastructure/terraform
+        run: |
+          terraform init
+          terraform plan -out=tfplan
+      - name: Terraform apply
+        if: ${{ inputs.terraform_apply && secrets.AWS_DEPLOY_ROLE_ARN != '' }}
+        working-directory: infrastructure/terraform
+        run: terraform apply -auto-approve tfplan
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.31.0"
+      - name: Kubernetes apply
+        if: ${{ inputs.kubernetes_apply && secrets.AWS_DEPLOY_ROLE_ARN != '' }}
+        run: |
+          aws eks update-kubeconfig --name "${{ vars.EKS_CLUSTER_NAME || 'sentinel-demo' }}"
+          kubectl apply -k infrastructure/kubernetes/overlays/aws
+      - name: Skip when AWS role missing
+        if: ${{ secrets.AWS_DEPLOY_ROLE_ARN == '' }}
+        run: |
+          echo "AWS_DEPLOY_ROLE_ARN is not configured. No AWS resources were created."
+          echo "This workflow is a deployment foundation only; it has not been proven against a live AWS account from this repo."

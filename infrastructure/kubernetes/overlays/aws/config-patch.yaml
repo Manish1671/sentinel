@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentinel-config
+  namespace: sentinel
+data:
+  ENVIRONMENT: production
+  LOG_LEVEL: info
+  KAFKA_BROKERS: "REPLACE_WITH_KAFKA_BOOTSTRAP"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  AWS_REGION: us-east-1
+  S3_BUCKET: REPLACE_WITH_S3_BUCKET
+  SEED_ON_START: "false"
+  REMEDIATION_URL: http://remediation:8093
+  API_URL: http://api:8080

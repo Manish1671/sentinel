@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentinel-config
+  namespace: sentinel
+  labels:
+    app.kubernetes.io/part-of: sentinel
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "info"
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_CLIENT_ID: "sentinel"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+  OTEL_SERVICE_NAME: "sentinel"
+  AWS_REGION: "us-east-1"
+  S3_BUCKET: "sentinel-artifacts"
+  S3_ENDPOINT: ""
+  S3_USE_PATH_STYLE: "false"
+  REMEDIATION_URL: "http://remediation:8093"
+  API_URL: "http://api:8080"
+  AI_SERVICE_URL: "http://ai:8000"
+  INGESTION_URL: "http://ingestion:8090"
+  AI_MODEL: "sentinel-investigator"
+  AI_BASE_URL: "https://api.openai.com/v1"
+  MIGRATIONS_PATH: "/app/database/migrations"
+  SEED_ON_START: "false"
+  INCIDENT_CORRELATION_WINDOW_SECONDS: "300"
+  AUTH_TOKEN_TTL: "12h"

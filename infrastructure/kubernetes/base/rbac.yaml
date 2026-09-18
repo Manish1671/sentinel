@@ -1,0 +1,43 @@
+# Workload accounts may not mutate cluster-scoped resources.
+# AWS IRSA annotations are added in the aws overlay for S3 access.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sentinel-runtime
+  namespace: sentinel
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sentinel-runtime
+  namespace: sentinel
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sentinel-runtime
+subjects:
+  - kind: ServiceAccount
+    name: sentinel-api
+    namespace: sentinel
+  - kind: ServiceAccount
+    name: sentinel-ingestion
+    namespace: sentinel
+  - kind: ServiceAccount
+    name: sentinel-detection
+    namespace: sentinel
+  - kind: ServiceAccount
+    name: sentinel-incident
+    namespace: sentinel
+  - kind: ServiceAccount
+    name: sentinel-ai
+    namespace: sentinel
+  - kind: ServiceAccount
+    name: sentinel-remediation
+    namespace: sentinel
+  - kind: ServiceAccount
+    name: sentinel-web
+    namespace: sentinel

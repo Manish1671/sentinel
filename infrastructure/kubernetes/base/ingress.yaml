@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sentinel
+  namespace: sentinel
+  labels:
+    app.kubernetes.io/part-of: sentinel
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: sentinel.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+          - path: /ready
+            pathType: Exact
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 3000

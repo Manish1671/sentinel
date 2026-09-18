@@ -71,15 +71,13 @@ scripts/          Local and operational scripts
 7. **Phase 6 — AI investigation with restricted tools**
 8. **Phase 7 — Recommendation & remediation**
 9. **Phase 8 — Operator UI**
-10. **Phase 9 — Observability** (current)
+10. **Phase 9 — Observability**
 11. **Phase 10 — Kubernetes, Terraform & AWS**
-12. **Phase 11 — Failure injection, evaluation & final polish**
+12. **Phase 11 — Failure injection, evaluation & final polish** (current)
 
 ## Current project status
 
-**Phase 9 — Observability**
-
-The repository includes a Go control-plane API, ingestion, detection, incident correlation, Python AI investigation, Go remediation, a Next.js operator console, and local OpenTelemetry / Prometheus / Grafana (Compose profile `observability`). Kubernetes/AWS delivery remains Phase 10.
+**Phase 10 — Kubernetes, Terraform & AWS** is complete (manifests, Terraform, CI/CD foundations). AWS has not been applied from this repository. Next: Phase 11.
 
 ## Local infrastructure
 
@@ -111,3 +109,4 @@ Run `apps/api` (`:8080`) and `apps/web` (`:3000`) on the host. See [observabilit
 - [Architecture decisions](docs/decisions/README.md)
 - [HTTP API](docs/api/README.md)
 - [Idempotency](docs/architecture/idempotency.md)
+- [Deployment](docs/deployment.md)
